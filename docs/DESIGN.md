@@ -1,0 +1,29 @@
+# Olympus / Design 0.2
+
+## Purpose
+A small, expandable workspace owned visually by Zeus. This iteration explores navigation and composition, not judgement, psychological profiling, analytics inference or remote administration.
+
+## Composition
+A 208px sidebar contains Overview, Audiences and Layout. A 72px top bar contains the platform selector and owner identity. The main area starts with a short heading, followed by source tabs and a two-column grid: a larger resource panel and a smaller reusable block. There are no KPI cards, theatrical artwork or invented activity feeds.
+
+The resource panel switches between a table and zero-based bars. Search, source selection and an explicit database selector reveal a little information at a time. Selecting an item opens a focused detail dialog. Platform changes filter only confirmed mappings; unassigned database tables are never silently assigned to a website.
+
+The secondary area starts blank. Add a reusable block, rename it, choose Blank or Note, write optional text, move it up or down, or remove it. Lorem ipsum appears only as an input placeholder. Audiences starts empty and allows named draft blocks; it does not invent visitors or demographic segments.
+
+## Visual system
+Near-black #0E0F11 background; #15161A surfaces; #282A32 boundaries; #F3F3F6 primary text; #A3A5B1 secondary text. Violet #B7AEF5 marks selection and controls; gold #CFBD98 is reserved for identity accents. System sans-serif, 14px base text, compact secondary labels and a 32px page title. Eight-pixel spacing rhythm, 12px panel corners. No external fonts or decorative textures.
+
+## Interaction and states
+All visible controls must work. Keyboard focus is visible. Modals trap focus natively, close with Escape and return focus. Import validation errors appear beside the importer. Missing data uses an em dash or an empty state, never a fabricated zero. A real zero remains visible.
+
+The selected table chart uses a common zero baseline and retains its scale during text searches. Tables in different databases remain separate. Mixed-source metrics are never added together.
+
+On tablet the blank blocks move below resources. On small screens the sidebar becomes compact navigation, the selectors stack and the table hides secondary columns. Controls remain at least 40px high where possible. Reduced-motion preferences disable transitions.
+
+## Data boundaries
+GitHub and Vercel repository links were inspected, as were selected Supabase table counts. The public starter contains only public repository references and platform labels. Private snapshots are separate downloads, not source files. An imported snapshot stays in page memory and is cleared on reload; it is not uploaded or saved to localStorage. Only layout and draft text are stored locally, after a storage availability check. Drafts are not secure document storage.
+
+The application does not inherit the ChatGPT connectors. Owner: Zeus is a visual label, not authentication. No live API credentials, automatic sync, database writes, commits, deployments or messages are implemented here.
+
+## Next iteration, not this iteration
+Add authenticated, authorized server adapters for each provider; approved resource mappings; live refresh and audit trails. Do not enable private data APIs or remote writes merely by adding credentials to this preview.

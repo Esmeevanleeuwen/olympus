@@ -1,0 +1,10 @@
+node_modules/
+.next/
+out/
+.model-test/
+*.tsbuildinfo
+.env*
+private/
+*snapshot*.json
+*private*.json
+.DS_Store
