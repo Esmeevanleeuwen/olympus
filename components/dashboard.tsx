@@ -1,15 +1,21 @@
 "use client";
 
 import * as React from "react";
-import { Block, Layout, Resource, Snapshot, Provider, PLATFORMS, PROVIDERS, INITIAL_LAYOUT,
+import { Block, Layout, Resource, Snapshot, Provider, SuiteTool, PLATFORMS, PROVIDERS, INITIAL_LAYOUT,
   parseSnapshot, parseLayout, resourcesWithSnapshot, filterResources, chartMaximum, moveBlock } from "../lib/workspace";
 
 type Group = "blocks" | "audiences";
 type ModalState = { type: "resource"; resource: Resource } | { type: "block"; group: Group; draft: Block } | { type: "reset" } | null;
 type State = { screen: "workspace" | "audiences" | "layout"; platform: string; provider: string; source: string;
   search: string; chart: boolean; expanded: boolean; snapshot: Snapshot | null; layout: Layout; modal: ModalState;
-  storage: boolean; error: string; notice: string; importing: boolean };
+  layoutTab: "controls" | "suite"; storage: boolean; error: string; notice: string; importing: boolean };
 const STORAGE = "olympus-layout-v02";
+const SUITE_TOOLS: { id: SuiteTool; name: string; description: string; icon: string }[] = [
+  { id: "scratchpad", name: "Scratchpad", description: "Keep temporary notes beside the workspace.", icon: "edit" },
+  { id: "data-inspector", name: "Data inspector", description: "Test focused views of selected resources.", icon: "database" },
+  { id: "api-sandbox", name: "API sandbox", description: "Reserve a safe place for request testing later.", icon: "code" },
+  { id: "command-shelf", name: "Command shelf", description: "Keep repeated actions within reach.", icon: "bolt" }
+];
 const number = new Intl.NumberFormat("en-GB");
 const date = (value: string | null) => value ? new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(value)) : "Not a live reading";
 const icons: Record<string, React.ReactNode> = {
@@ -67,7 +73,7 @@ export default class Dashboard extends React.Component<{ initialSnapshot?: Snaps
   constructor(props: { initialSnapshot?: Snapshot }) {
     super(props); this.state = { screen: "workspace", platform: "all", provider: props.initialSnapshot ? "supabase" : "all", source: props.initialSnapshot?.resources.find(r => r.provider === "supabase")?.source || "all", search: "", chart: false,
       expanded: false, snapshot: props.initialSnapshot ? parseSnapshot(props.initialSnapshot) : null,
-      layout: INITIAL_LAYOUT, modal: null, storage: false, error: "", notice: "", importing: false };
+      layout: INITIAL_LAYOUT, modal: null, layoutTab: "controls", storage: false, error: "", notice: "", importing: false };
   }
   componentDidMount() {
     try { const saved = localStorage.getItem(STORAGE); const layout = saved ? parseLayout(JSON.parse(saved)) : INITIAL_LAYOUT;
@@ -110,6 +116,13 @@ export default class Dashboard extends React.Component<{ initialSnapshot?: Snaps
     const blob = new Blob([JSON.stringify(this.state.layout, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob), link = document.createElement("a"); link.href = url; link.download = "olympus-layout.json"; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
+  updateSuite = (patch: Partial<Layout["suite"]>) => {
+    this.persist({ ...this.state.layout, suite: { ...this.state.layout.suite, ...patch } });
+  };
+  toggleSuiteTool = (tool: SuiteTool) => {
+    const tools = this.state.layout.suite.tools;
+    this.updateSuite({ tools: { ...tools, [tool]: !tools[tool] } });
+  };
   renderModal() {
     const modal = this.state.modal; if (!modal) return null;
     const close = () => this.setState({ modal: null });
@@ -119,7 +132,7 @@ export default class Dashboard extends React.Component<{ initialSnapshot?: Snaps
       <p className="detail-copy">{r.detail}</p><p className="muted">{r.kind === "table" ? "Only a row count is included. Individual records are not loaded. Database mappings are not inferred from table names." : "This is a resource reference, not a live connection or a health check."}</p>
       {r.url && <a className="button" href={r.url} target="_blank" rel="noopener noreferrer">Open in {PROVIDERS[r.provider]} <Icon name="out" size={14}/></a>}
     </Modal>; }
-    if (modal.type === "reset") return <Modal title="Reset the layout?" onClose={close}><p className="detail-copy">This removes local block and audience drafts. Imported data and your external platforms are not changed.</p><div className="modal-actions"><button className="button" onClick={close}>Keep layout</button><button className="button danger" onClick={() => { this.persist(INITIAL_LAYOUT); close(); }}>Reset local drafts</button></div></Modal>;
+    if (modal.type === "reset") return <Modal title="Reset the layout?" onClose={close}><p className="detail-copy">This removes local drafts and hides the Suite sidebar. Imported data and your external platforms are not changed.</p><div className="modal-actions"><button className="button" onClick={close}>Keep layout</button><button className="button danger" onClick={() => { this.persist(INITIAL_LAYOUT); close(); }}>Reset layout</button></div></Modal>;
     const exists = this.state.layout[modal.group].some(b => b.id === modal.draft.id);
     return <Modal title={modal.group === "audiences" ? "Audience draft" : "Edit block"} onClose={close}><form onSubmit={event => { event.preventDefault(); this.saveBlock(); }}>
       <label className="field">Name<input required maxLength={60} value={modal.draft.title} onChange={event => this.updateDraft({ title: event.target.value })}/></label>
@@ -139,6 +152,7 @@ export default class Dashboard extends React.Component<{ initialSnapshot?: Snaps
       <aside className="sidebar"><div className="brand"><span className="brand-mark"><Icon name="bolt" size={24}/></span><span>OLYMPUS<small>A shared perspective.</small></span></div>
         <div className="nav-label">WORKSPACE</div><nav aria-label="Main navigation">{([
           ["workspace", "grid", "Overview"], ["audiences", "people", "Audiences"], ["layout", "sliders", "Layout"]] as const).map(([screen, icon, label]) => <button key={screen} className={`nav-item ${s.screen === screen ? "active" : ""}`} aria-current={s.screen === screen ? "page" : undefined} onClick={() => this.setState({ screen, error: "", notice: "" })}><Icon name={icon}/><span>{label}</span>{s.screen === screen && <span className="nav-dot"/>}</button>)}</nav>
+        {s.layout.suite.visible && <div className="suite-nav"><div className="nav-label">SUITE · TEST SPACE</div>{SUITE_TOOLS.filter(tool => s.layout.suite.tools[tool.id]).map(tool => <button key={tool.id} className="suite-nav-item" onClick={() => this.setState({ notice: `${tool.name} is visible as a test slot. It is not connected yet.` })}><Icon name={tool.icon} size={16}/><span>{tool.name}</span><span className="suite-test-tag">TEST</span></button>)}{!Object.values(s.layout.suite.tools).some(Boolean) && <p>No tools are visible. Choose them under Layout.</p>}</div>}
         <div className="sidebar-bottom"><span className="tiny-square"/><span>Design foundation<small>Version 0.2 · no live actions</small></span></div>
       </aside>
       <div className="app-body"><header className="topbar"><div className="platform-control"><Icon name="grid" size={16}/><label className="sr-only" htmlFor="platform">Resource platform</label><select id="platform" disabled={s.screen !== "workspace"} title="Filters resource references only" value={s.platform} onChange={event => this.setState({ platform: event.target.value, source: "all", search: "", expanded: false })}><option value="all">All platforms</option>{PLATFORMS.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></div>
@@ -157,7 +171,9 @@ export default class Dashboard extends React.Component<{ initialSnapshot?: Snaps
           <div className="context-line"><Icon name="info" size={14}/><span>{s.snapshot ? "Imported tables remain unassigned until their platform links are confirmed." : "Start with references. Add data only when it is ready."}</span></div>
         </>}
         {s.screen === "audiences" && <><p className="section-caption">Workspace-wide drafts · not measured audiences or platform assignments</p>{s.layout.audiences.length === 0 ? <section className="panel audience-empty"><EmptyState title="Nothing defined yet" action={<button className="button" onClick={() => this.addBlock("audiences")}><Icon name="plus" size={16}/> Create a draft</button>}>Leave this open for now, or add a blank audience block. No profiles or numbers are generated.</EmptyState></section> : <div className="audience-grid">{s.layout.audiences.map((block, index) => <BlockPanel key={block.id} block={block} index={index} total={s.layout.audiences.length} onEdit={() => this.setState({ modal: { type: "block", group: "audiences", draft: { ...block } } })} onMove={direction => this.persist({ ...s.layout, audiences: moveBlock(s.layout.audiences, block.id, direction) })}/>)}</div>}</>}
-        {s.screen === "layout" && <section className="panel settings-panel"><div className="panel-heading"><div><h2>Layout & data</h2><p>This preview does not connect to external accounts.</p></div></div><div className="setting-row"><div><h3>Local layout</h3><p>{s.storage ? "Blocks and draft text are saved on this device." : "Browser storage is unavailable. Session only."}</p></div><button className="button" onClick={this.exportLayout}>Export layout</button></div><div className="setting-row"><div><h3>Imported snapshot</h3><p>{s.snapshot ? `${s.snapshot.resources.length} references in memory. Not uploaded or persisted.` : "No snapshot loaded. Public repository references only."}</p></div><button className="button" disabled={!s.snapshot} onClick={() => this.setState({ snapshot: null, source: "all", provider: "all", search: "", chart: false, expanded: false, notice: "Snapshot cleared from this tab." })}>Clear snapshot</button></div><div className="setting-row"><div><h3>Start over</h3><p>Remove local drafts and restore one blank block.</p></div><button className="button" onClick={() => this.setState({ modal: { type: "reset" } })}>Reset layout</button></div><div className="settings-note"><Icon name="info" size={16}/><p>The Zeus owner label is part of the design, not authentication. Private live data and remote actions require a separate secure implementation.</p></div></section>}
+        {s.screen === "layout" && <><div className="layout-tabs" role="tablist" aria-label="Layout sections"><button role="tab" aria-selected={s.layoutTab === "controls"} onClick={() => this.setState({ layoutTab: "controls" })}>Layout & data</button><button role="tab" aria-selected={s.layoutTab === "suite"} onClick={() => this.setState({ layoutTab: "suite" })}>Suite sidebar</button></div>
+          {s.layoutTab === "controls" ? <section className="panel settings-panel" role="tabpanel"><div className="panel-heading"><div><h2>Layout & data</h2><p>Manage local drafts and the imported snapshot.</p></div></div><div className="setting-row"><div><h3>Local layout</h3><p>{s.storage ? "Blocks and draft text are saved on this device." : "Browser storage is unavailable. Session only."}</p></div><button className="button" onClick={this.exportLayout}>Export layout</button></div><div className="setting-row"><div><h3>Imported snapshot</h3><p>{s.snapshot ? `${s.snapshot.resources.length} references in memory. Not uploaded or persisted.` : "No snapshot loaded. Public repository references only."}</p></div><button className="button" disabled={!s.snapshot} onClick={() => this.setState({ snapshot: null, source: "all", provider: "all", search: "", chart: false, expanded: false, notice: "Snapshot cleared from this tab." })}>Clear snapshot</button></div><div className="setting-row"><div><h3>Start over</h3><p>Remove local drafts and restore one blank block.</p></div><button className="button" onClick={() => this.setState({ modal: { type: "reset" } })}>Reset layout</button></div><div className="settings-note"><Icon name="info" size={16}/><p>The Zeus owner label is part of the design, not authentication. Private live data and remote actions require a separate secure implementation.</p></div></section> : <section className="panel settings-panel suite-settings" role="tabpanel"><div className="panel-heading"><div><h2>Suite sidebar</h2><p>A hidden place for small tools while Olympus is still being built.</p></div><label className="switch-control"><span>{s.layout.suite.visible ? "Shown" : "Hidden"}</span><input type="checkbox" checked={s.layout.suite.visible} onChange={() => this.updateSuite({ visible: !s.layout.suite.visible })}/><span className="switch-track" aria-hidden="true"><span/></span></label></div><div className="suite-intro"><Icon name="info" size={16}/><p>Turn the sidebar on only when you need it. Tools stay separate from the main navigation and can be enabled one by one.</p></div><div className="suite-tool-list">{SUITE_TOOLS.map(tool => <div className="suite-tool-row" key={tool.id}><span className="suite-tool-icon"><Icon name={tool.icon} size={17}/></span><div><h3>{tool.name}</h3><p>{tool.description}</p></div><label className="switch-control"><span className="sr-only">Show {tool.name}</span><input type="checkbox" checked={s.layout.suite.tools[tool.id]} onChange={() => this.toggleSuiteTool(tool.id)}/><span className="switch-track" aria-hidden="true"><span/></span></label></div>)}</div><div className="settings-note"><Icon name="bolt" size={16}/><p>These are interface slots only. They do not run queries, call APIs or make changes outside Olympus.</p></div></section>}
+        </>}
         <footer className="workspace-footer"><span><span className="neutral-dot"/>{s.snapshot ? `Snapshot · ${date(s.snapshot.capturedAt)} · not live` : "Reference view · no live connections"}</span><span>{s.storage ? "Layout saved on this device" : "Session-only layout"}</span></footer>
       </main></div>{this.renderModal()}
     </div>;
