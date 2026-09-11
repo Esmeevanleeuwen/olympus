@@ -10,6 +10,8 @@ The resource panel switches between a table and zero-based bars. Search, source 
 
 The secondary area starts blank. Add a reusable block, rename it, choose Blank or Note, write optional text, move it up or down, or remove it. Lorem ipsum appears only as an input placeholder. Audiences starts empty and allows named draft blocks; it does not invent visitors or demographic segments.
 
+Layout contains two inner tabs. **Layout & data** keeps the existing local storage, snapshot and reset controls. **Suite sidebar** controls an optional group of experimental tools. The whole group can be hidden, and Scratchpad, Data inspector, API sandbox and Command shelf can be shown separately. Enabled tools appear under a clearly marked `SUITE · TEST SPACE` section in the main sidebar. They are interface slots only and do not run external actions.
+
 ## Visual system
 Near-black #0E0F11 background; #15161A surfaces; #282A32 boundaries; #F3F3F6 primary text; #A3A5B1 secondary text. Violet #B7AEF5 marks selection and controls; gold #CFBD98 is reserved for identity accents. System sans-serif, 14px base text, compact secondary labels and a 32px page title. Eight-pixel spacing rhythm, 12px panel corners. No external fonts or decorative textures.
 
@@ -18,10 +20,10 @@ All visible controls must work. Keyboard focus is visible. Modals trap focus nat
 
 The selected table chart uses a common zero baseline and retains its scale during text searches. Tables in different databases remain separate. Mixed-source metrics are never added together.
 
-On tablet the blank blocks move below resources. On small screens the sidebar becomes compact navigation, the selectors stack and the table hides secondary columns. Controls remain at least 40px high where possible. Reduced-motion preferences disable transitions.
+On tablet the blank blocks move below resources. On small screens the sidebar becomes compact navigation, enabled Suite tools become a horizontally scrollable row, the selectors stack and the table hides secondary columns. Controls remain at least 40px high where possible. Reduced-motion preferences disable transitions.
 
 ## Data boundaries
-GitHub and Vercel repository links were inspected, as were selected Supabase table counts. The public starter contains only public repository references and platform labels. Private snapshots are separate downloads, not source files. An imported snapshot stays in page memory and is cleared on reload; it is not uploaded or saved to localStorage. Only layout and draft text are stored locally, after a storage availability check. Drafts are not secure document storage.
+GitHub and Vercel repository links were inspected, as were selected Supabase table counts. The public starter contains only public repository references and platform labels. Private snapshots are separate downloads, not source files. An imported snapshot stays in page memory and is cleared on reload; it is not uploaded or saved to localStorage. Only layout, Suite visibility and draft text are stored locally, after a storage availability check. Drafts are not secure document storage.
 
 The application does not inherit the ChatGPT connectors. Owner: Zeus is a visual label, not authentication. No live API credentials, automatic sync, database writes, commits, deployments or messages are implemented here.
 
