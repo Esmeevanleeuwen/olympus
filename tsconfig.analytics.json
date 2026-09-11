@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "jsx": "react-jsx",
+    "rootDir": ".",
+    "outDir": ".analytics-test"
+  },
+  "include": ["lib/analytics.ts", "lib/server/**/*.ts", "app/api/vercel-analytics/**/*.ts", "components/vercel-analytics.tsx"]
+}

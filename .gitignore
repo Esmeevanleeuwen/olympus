@@ -2,9 +2,12 @@ node_modules/
 .next/
 out/
 .model-test/
+.analytics-test/
 *.tsbuildinfo
 .env*
 private/
 *snapshot*.json
 *private*.json
 .DS_Store
+
+!.env.example

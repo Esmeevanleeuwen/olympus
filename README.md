@@ -1,6 +1,6 @@
 # Olympus — Workspace
 
-A deliberately small, interactive Next.js + TypeScript design foundation. Zeus is the visual owner; this is not yet an authenticated administration console.
+A small, interactive Next.js + TypeScript workspace. Zeus is the visual owner. The Vercel Analytics section has separate owner access; the rest of the workspace remains a design foundation.
 
 Read [the design notes](docs/DESIGN.md) before adding features.
 
@@ -25,7 +25,9 @@ npm run build
 
 Platform selection; source filtering; resource search; table and bar views; source details; local snapshot import; adding, renaming, reordering and removing blocks; draft notes; the Audiences snapshot dashboard; local layout persistence; layout export and reset; optional Suite sidebar controls.
 
-No live service connection, record editing, GitHub writes, deployment actions, analytics or AI judgement are implemented. Public repository references are not live connection indicators. The app does not inherit the connectors available in ChatGPT.
+**Audiences → Vercel Analytics** can read live traffic from one configured Vercel project. Follow [the Vercel setup steps](docs/VERCEL_ANALYTICS.md) to add the server credentials and owner password. Missing settings leave analytics unavailable, rather than displaying invented counts.
+
+Record editing, GitHub writes, deployment actions and AI judgement are not implemented. Public repository references are not live connection indicators. The app does not inherit the connectors available in ChatGPT.
 
 ## Data and privacy
 
@@ -49,12 +51,12 @@ A JSON object with `version: 1`, an ISO `capturedAt` string and a `resources` ar
 
 The client component uses React's supported class lifecycle so the same UI can be inspected in an offline preview harness. It can be decomposed into smaller feature modules without changing the data contract.
 
-## Before live integrations
+## Additional integrations
 
-Add owner authentication, server-side authorization on every resource, least-privilege provider adapters and an audit log. Never expose Supabase secret/service-role keys, GitHub tokens or Vercel tokens in this client. A Zeus avatar is not access control. Keep the source project/table identity in every API result.
+Vercel Analytics checks the owner session on every request and restricts access to the server-configured project. Any further live integration must also enforce server-side authorization and retain the source identity. Never expose Supabase secret/service-role keys, GitHub tokens or Vercel tokens in the client. A Zeus avatar alone is not access control.
 
 ## Verification status
 
 The offline UI preview and pure TypeScript model were tested: filtering, dialogs, charts, block editing, snapshot validation, local persistence and responsive layout. The offline harness uses the installed React 16 UMD renderer; production source targets React 19.
 
-The Audiences update passes all 15 model tests, TypeScript checks and a production Next.js build. A component rendering check covers project separation, unavailable and zero counts, searching beyond the first six tables, a stable chart scale and the empty import state. No live Supabase connection is included.
+The test suite includes 15 existing snapshot/model tests and 12 analytics tests. Analytics checks cover signed sessions, failed access, fixed project scope, date ranges, distinct visitor totals, missing values, errors and component rendering using synthetic Vercel responses. Live figures still require verification with your configured token. No live Supabase connection is included.

@@ -10,7 +10,9 @@ The resource panel switches between a table and zero-based bars. Search, source 
 
 The secondary area starts blank. Add a reusable block, rename it, choose Blank or Note, write optional text, move it up or down, or remove it. Lorem ipsum appears only as an input placeholder.
 
-Audiences contains the saved Supabase snapshot view. A required project selector keeps databases separate. Up to three clickable summary cards show separately named table counts for the selected project. Counts from unrelated tables are never summed; unavailable counts remain unknown. The table list is searchable and always uses simple zero-based bars. Opening a table shows its source, exact stored count and the read-only count query. When no snapshot is loaded, the page shows one clear import action instead of invented audience data.
+Audiences has two keyboard-accessible tabs: **Supabase** and **Vercel Analytics**. Supabase contains the saved snapshot view. A required project selector keeps databases separate. Up to three clickable summary cards show separately named table counts for the selected project. Counts from unrelated tables are never summed; unavailable counts remain unknown. The table list is searchable and always uses simple zero-based bars. Opening a table shows its source, exact stored count and the read-only count query. When no snapshot is loaded, the page shows one clear import action instead of invented audience data.
+
+Vercel Analytics starts with one configured project, an owner-password gate and a 7/30-day selector. Two cards show visitors and page views for the selected production period. A zero-based daily bar chart includes a readable data table; two breakdown tables show popular pages and referrers. Refresh reloads the report and updates its timestamp. Loading, missing settings, denied access, empty traffic and upstream errors have separate states. Missing values remain unknown. Its 16px body text and 14px controls retain the existing dark surfaces and violet accents.
 
 Layout contains two inner tabs. **Layout & data** keeps the existing local storage, snapshot and reset controls. **Suite sidebar** controls an optional group of experimental tools. The whole group can be hidden, and Scratchpad, Data inspector, API sandbox and Command shelf can be shown separately. Enabled tools appear under a clearly marked `SUITE · TEST SPACE` section in the main sidebar. They are interface slots only and do not run external actions.
 
@@ -27,7 +29,7 @@ On tablet the blank blocks move below resources. On small screens the sidebar be
 ## Data boundaries
 GitHub and Vercel repository links were inspected, as were selected Supabase table counts. The public starter contains only public repository references and platform labels. Private snapshots are separate downloads, not source files. An imported snapshot stays in page memory and is cleared on reload; it is not uploaded or saved to localStorage. Only layout, Suite visibility and draft text are stored locally, after a storage availability check. Drafts are not secure document storage.
 
-The application does not inherit the ChatGPT connectors. Owner: Zeus is a visual label, not authentication. No live API credentials, automatic sync, database writes, commits, deployments or messages are implemented here.
+The application does not inherit the ChatGPT connectors. Owner: Zeus is a visual label. Vercel Analytics separately checks a signed owner session and uses server-only credentials for read requests. Reports stay in memory and private responses are not cached. There are no database writes, commits, deployments or messages from the app.
 
 ## Next iteration, not this iteration
-Add authenticated, authorized server adapters for each provider; approved resource mappings; live refresh and audit trails. Do not enable private data APIs or remote writes merely by adding credentials to this preview.
+Extend the provider adapters and approved project mappings after the first live analytics report is verified. Adding another data source must preserve per-request authorization and clear source attribution.
