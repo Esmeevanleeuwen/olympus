@@ -10,6 +10,8 @@ export type SuiteTool = "scratchpad" | "data-inspector" | "api-sandbox" | "comma
 export type SuiteConfig = { visible: boolean; tools: Record<SuiteTool, boolean> };
 export type Layout = { blocks: Block[]; audiences: Block[]; suite: SuiteConfig };
 export const PLATFORMS = [
+
+  
   { id: "meridian", name: "Meridian", repo: "perspectief" },
   { id: "aegora", name: "Aegora", repo: "aegora" },
   { id: "phosphoros", name: "Phosphoros", repo: "Phosphoros" },
