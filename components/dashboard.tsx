@@ -2,21 +2,25 @@
 
 import * as React from "react";
 import VercelAnalytics from "./vercel-analytics";
-import { Block, Layout, Resource, Snapshot, Provider, SuiteTool, PLATFORMS, PROVIDERS, INITIAL_LAYOUT,
+import SuiteSidebar from "./suite-sidebar";
+import FeaturePanel from "./feature-panel";
+import { FeatureId, SuitePanel } from "../lib/features";
+import { StoredSuite, SuitePreferences, StoragePort, ToolPreference, defaultPreferences, emptyDrafts,
+  readSuite, savePreferences, saveDrafts, patchTool, moveTool, canOpen, panelAfterPreferenceChange, MAX_NOTE_LENGTH } from "../lib/suite-preferences";
+import "./suite.css";
+import { Block, Layout, Resource, Snapshot, Provider, PLATFORMS, PROVIDERS, INITIAL_LAYOUT,
   parseSnapshot, parseLayout, resourcesWithSnapshot, filterResources, chartMaximum, moveBlock } from "../lib/workspace";
 
 type Group = "blocks" | "audiences";
 type ModalState = { type: "resource"; resource: Resource } | { type: "block"; group: Group; draft: Block } | { type: "reset" } | null;
-type State = { screen: "workspace" | "audiences" | "layout"; platform: string; provider: string; source: string;
+type SuiteState = StoredSuite & { ready: boolean; active: SuitePanel };
+type State = { suiteState: SuiteState; screen: "workspace" | "audiences" | "layout"; platform: string; provider: string; source: string;
   search: string; chart: boolean; expanded: boolean; snapshot: Snapshot | null; layout: Layout; modal: ModalState;
   layoutTab: "controls" | "suite"; audienceTab: "supabase" | "vercel"; storage: boolean; error: string; notice: string; importing: boolean };
 const STORAGE = "olympus-layout-v02";
-const SUITE_TOOLS: { id: SuiteTool; name: string; description: string; icon: string }[] = [
-  { id: "scratchpad", name: "Scratchpad", description: "Keep temporary notes beside the workspace.", icon: "edit" },
-  { id: "data-inspector", name: "Data inspector", description: "Test focused views of selected resources.", icon: "database" },
-  { id: "api-sandbox", name: "API sandbox", description: "Reserve a safe place for request testing later.", icon: "code" },
-  { id: "command-shelf", name: "Command shelf", description: "Keep repeated actions within reach.", icon: "bolt" }
-];
+function suiteStorage(): StoragePort | null {
+  try { return window.localStorage; } catch { return null; }
+}
 const number = new Intl.NumberFormat("en-GB");
 const date = (value: string | null) => value ? new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(value)) : "Not a live reading";
 const icons: Record<string, React.ReactNode> = {
@@ -72,11 +76,14 @@ function BlockPanel({ block, index, total, onEdit, onMove }: { block: Block; ind
 export default class Dashboard extends React.Component<{ initialSnapshot?: Snapshot }, State> {
   fileInput: HTMLInputElement | null = null;
   constructor(props: { initialSnapshot?: Snapshot }) {
-    super(props); this.state = { screen: "workspace", platform: "all", provider: props.initialSnapshot ? "supabase" : "all", source: props.initialSnapshot?.resources.find(r => r.provider === "supabase")?.source || "all", search: "", chart: false,
+    super(props); this.state = { suiteState: { preferences: defaultPreferences(), drafts: emptyDrafts(),
+      preferencesSaved: false, draftsSaved: false, preferencesWritable: true, draftsWritable: true, ready: false, active: null }, screen: "workspace", platform: "all", provider: props.initialSnapshot ? "supabase" : "all", source: props.initialSnapshot?.resources.find(r => r.provider === "supabase")?.source || "all", search: "", chart: false,
       expanded: false, snapshot: props.initialSnapshot ? parseSnapshot(props.initialSnapshot) : null,
       layout: INITIAL_LAYOUT, modal: null, layoutTab: "controls", audienceTab: "supabase", storage: false, error: "", notice: "", importing: false };
   }
   componentDidMount() {
+    // Migrate old flags before the existing layout loader normalizes its record.
+    this.setState({ suiteState: { ...readSuite(suiteStorage()), ready: true, active: null } });
     try { const saved = localStorage.getItem(STORAGE); const layout = saved ? parseLayout(JSON.parse(saved)) : INITIAL_LAYOUT;
       localStorage.setItem(STORAGE, JSON.stringify(layout)); this.setState({ layout, storage: true }); }
     catch { this.setState({ storage: false, notice: "Local saving is unavailable. Changes will last for this session." }); }
@@ -117,12 +124,31 @@ export default class Dashboard extends React.Component<{ initialSnapshot?: Snaps
     const blob = new Blob([JSON.stringify(this.state.layout, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob), link = document.createElement("a"); link.href = url; link.download = "olympus-layout.json"; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
-  updateSuite = (patch: Partial<Layout["suite"]>) => {
-    this.persist({ ...this.state.layout, suite: { ...this.state.layout.suite, ...patch } });
+  updateSuitePreferences = (preferences: SuitePreferences, reset = false) => {
+    const suite = this.state.suiteState;
+    const writable = reset || suite.preferencesWritable;
+    const preferencesSaved = writable && savePreferences(suiteStorage(), preferences);
+    this.setState({ suiteState: { ...suite, preferences, preferencesSaved, preferencesWritable: writable,
+      active: panelAfterPreferenceChange(suite.active, suite.preferences, preferences) } });
   };
-  toggleSuiteTool = (tool: SuiteTool) => {
-    const tools = this.state.layout.suite.tools;
-    this.updateSuite({ tools: { ...tools, [tool]: !tools[tool] } });
+  patchSuiteTool = (id: FeatureId, patch: Partial<Pick<ToolPreference, "enabled" | "showInSidebar">>) => {
+    this.updateSuitePreferences(patchTool(this.state.suiteState.preferences, id, patch));
+  };
+  moveSuiteTool = (id: FeatureId, direction: -1 | 1) => {
+    this.updateSuitePreferences(moveTool(this.state.suiteState.preferences, id, direction));
+  };
+  openSuitePanel = (panel: Exclude<SuitePanel, null>) => {
+    const suite = this.state.suiteState;
+    if (!suite.ready || (panel !== "library" && !canOpen(suite.preferences, panel))) return;
+    this.setState({ suiteState: { ...suite, active: panel } });
+  };
+  closeSuitePanel = () => this.setState({ suiteState: { ...this.state.suiteState, active: null } });
+  updateScratchpad = (text: string, reset = false) => {
+    if (text.length > MAX_NOTE_LENGTH) return;
+    const suite = this.state.suiteState, writable = reset || suite.draftsWritable;
+    const drafts = { ...suite.drafts, scratchpad: text };
+    const draftsSaved = writable && saveDrafts(suiteStorage(), drafts);
+    this.setState({ suiteState: { ...suite, drafts, draftsSaved, draftsWritable: writable } });
   };
   renderModal() {
     const modal = this.state.modal; if (!modal) return null;
@@ -133,7 +159,7 @@ export default class Dashboard extends React.Component<{ initialSnapshot?: Snaps
       <p className="detail-copy">{r.detail}</p>{r.kind === "table" && <div className="query-block"><span>Count query</span><code>{`select count(*) from public."${r.name.replaceAll('"', '""')}";`}</code></div>}<p className="muted">{r.kind === "table" ? "Only a row count is included. Individual records are not loaded. Database mappings are not inferred from table names." : "This is a resource reference, not a live connection or a health check."}</p>
       {r.url && <a className="button" href={r.url} target="_blank" rel="noopener noreferrer">Open in {PROVIDERS[r.provider]} <Icon name="out" size={14}/></a>}
     </Modal>; }
-    if (modal.type === "reset") return <Modal title="Reset the layout?" onClose={close}><p className="detail-copy">This removes local drafts and hides the Suite sidebar. Imported data and your external platforms are not changed.</p><div className="modal-actions"><button className="button" onClick={close}>Keep layout</button><button className="button danger" onClick={() => { this.persist(INITIAL_LAYOUT); close(); }}>Reset layout</button></div></Modal>;
+    if (modal.type === "reset") return <Modal title="Reset the layout?" onClose={close}><p className="detail-copy">This removes workspace blocks and audience drafts only. Suite preferences, scratchpad text, imported data and external platforms are not changed.</p><div className="modal-actions"><button className="button" onClick={close}>Keep layout</button><button className="button danger" onClick={() => { this.persist({ ...INITIAL_LAYOUT, suite: this.state.layout.suite }); close(); }}>Reset layout</button></div></Modal>;
     const exists = this.state.layout[modal.group].some(b => b.id === modal.draft.id);
     return <Modal title={modal.group === "audiences" ? "Audience draft" : "Edit block"} onClose={close}><form onSubmit={event => { event.preventDefault(); this.saveBlock(); }}>
       <label className="field">Name<input required maxLength={60} value={modal.draft.title} onChange={event => this.updateDraft({ title: event.target.value })}/></label>
@@ -144,7 +170,7 @@ export default class Dashboard extends React.Component<{ initialSnapshot?: Snaps
     </form></Modal>;
   }
   render() {
-    const s = this.state, all = resourcesWithSnapshot(s.snapshot);
+    const s = this.state, suite = s.suiteState, all = resourcesWithSnapshot(s.snapshot);
     const scoped = filterResources(all, s.platform, s.provider, s.source), filtered = filterResources(scoped, "all", "all", "all", s.search);
     const visible = s.expanded ? filtered : filtered.slice(0, 6), maximum = chartMaximum(scoped);
     const sources = [...new Set(all.filter(r => r.provider === "supabase").map(r => r.source))];
@@ -154,11 +180,12 @@ export default class Dashboard extends React.Component<{ initialSnapshot?: Snaps
     const audienceVisible = s.expanded ? audienceRows : audienceRows.slice(0, 6);
     const audienceHighlights = audienceScoped.slice(0, 3);
     const group: Group = s.screen === "audiences" ? "audiences" : "blocks";
-    return <div className="app-shell"><a className="skip-link" href="#workspace-main">Skip to workspace</a>
+    return <div className={`app-shell ${suite.active ? "has-suite-panel" : ""}`}><a className="skip-link" href="#workspace-main">Skip to workspace</a>
       <aside className="sidebar"><div className="brand"><span className="brand-mark"><Icon name="bolt" size={24}/></span><span>OLYMPUS<small>A shared perspective.</small></span></div>
         <div className="nav-label">WORKSPACE</div><nav aria-label="Main navigation">{([
           ["workspace", "grid", "Overview"], ["audiences", "people", "Audiences"], ["layout", "sliders", "Layout"]] as const).map(([screen, icon, label]) => <button key={screen} className={`nav-item ${s.screen === screen ? "active" : ""}`} aria-current={s.screen === screen ? "page" : undefined} onClick={() => this.setState({ screen, source: screen === "audiences" ? audienceSource : s.source, search: "", expanded: false, error: "", notice: "" })}><Icon name={icon}/><span>{label}</span>{s.screen === screen && <span className="nav-dot"/>}</button>)}</nav>
-        {s.layout.suite.visible && <div className="suite-nav"><div className="nav-label">SUITE · TEST SPACE</div>{SUITE_TOOLS.filter(tool => s.layout.suite.tools[tool.id]).map(tool => <button key={tool.id} className="suite-nav-item" onClick={() => this.setState({ notice: `${tool.name} is visible as a test slot. It is not connected yet.` })}><Icon name={tool.icon} size={16}/><span>{tool.name}</span><span className="suite-test-tag">TEST</span></button>)}{!Object.values(s.layout.suite.tools).some(Boolean) && <p>No tools are visible. Choose them under Layout.</p>}</div>}
+        <SuiteSidebar preferences={suite.preferences} active={suite.active} ready={suite.ready} onOpen={this.openSuitePanel}
+          onCollapse={() => this.updateSuitePreferences({ ...suite.preferences, collapsed: !suite.preferences.collapsed })}/>
         <div className="sidebar-bottom"><span className="tiny-square"/><span>Design foundation<small>Read-only workspace</small></span></div>
       </aside>
       <div className="app-body"><header className="topbar"><div className="platform-control"><Icon name="grid" size={16}/><label className="sr-only" htmlFor="platform">Resource platform</label><select id="platform" disabled={s.screen !== "workspace"} title="Filters resource references only" value={s.platform} onChange={event => this.setState({ platform: event.target.value, source: "all", search: "", expanded: false })}><option value="all">All platforms</option>{PLATFORMS.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></div>
@@ -194,10 +221,18 @@ export default class Dashboard extends React.Component<{ initialSnapshot?: Snaps
           </> : <section className="panel audience-empty"><EmptyState title="No Supabase snapshot loaded" action={<button className="button" onClick={() => this.fileInput?.click()}><Icon name="upload" size={16}/> Import snapshot</button>}>Import the saved Olympus data snapshot to view table counts by project. Nothing is uploaded or changed in Supabase.</EmptyState></section>}
         </div>}
         {s.screen === "layout" && <><div className="layout-tabs" role="tablist" aria-label="Layout sections"><button role="tab" aria-selected={s.layoutTab === "controls"} onClick={() => this.setState({ layoutTab: "controls" })}>Layout & data</button><button role="tab" aria-selected={s.layoutTab === "suite"} onClick={() => this.setState({ layoutTab: "suite" })}>Suite sidebar</button></div>
-          {s.layoutTab === "controls" ? <section className="panel settings-panel" role="tabpanel"><div className="panel-heading"><div><h2>Layout & data</h2><p>Manage local drafts and the imported snapshot.</p></div></div><div className="setting-row"><div><h3>Local layout</h3><p>{s.storage ? "Blocks and draft text are saved on this device." : "Browser storage is unavailable. Session only."}</p></div><button className="button" onClick={this.exportLayout}>Export layout</button></div><div className="setting-row"><div><h3>Imported snapshot</h3><p>{s.snapshot ? `${s.snapshot.resources.length} references in memory. Not uploaded or persisted.` : "No snapshot loaded. Public repository references only."}</p></div><button className="button" disabled={!s.snapshot} onClick={() => this.setState({ snapshot: null, source: "all", provider: "all", search: "", chart: false, expanded: false, notice: "Snapshot cleared from this tab." })}>Clear snapshot</button></div><div className="setting-row"><div><h3>Start over</h3><p>Remove local drafts and restore one blank block.</p></div><button className="button" onClick={() => this.setState({ modal: { type: "reset" } })}>Reset layout</button></div><div className="settings-note"><Icon name="info" size={16}/><p>The Zeus owner label is part of the design, not authentication. Live Vercel analytics uses a separate owner password. Remote actions are unavailable.</p></div></section> : <section className="panel settings-panel suite-settings" role="tabpanel"><div className="panel-heading"><div><h2>Suite sidebar</h2><p>A hidden place for small tools while Olympus is still being built.</p></div><label className="switch-control"><span>{s.layout.suite.visible ? "Shown" : "Hidden"}</span><input type="checkbox" checked={s.layout.suite.visible} onChange={() => this.updateSuite({ visible: !s.layout.suite.visible })}/><span className="switch-track" aria-hidden="true"><span/></span></label></div><div className="suite-intro"><Icon name="info" size={16}/><p>Turn the sidebar on only when you need it. Tools stay separate from the main navigation and can be enabled one by one.</p></div><div className="suite-tool-list">{SUITE_TOOLS.map(tool => <div className="suite-tool-row" key={tool.id}><span className="suite-tool-icon"><Icon name={tool.icon} size={17}/></span><div><h3>{tool.name}</h3><p>{tool.description}</p></div><label className="switch-control"><span className="sr-only">Show {tool.name}</span><input type="checkbox" checked={s.layout.suite.tools[tool.id]} onChange={() => this.toggleSuiteTool(tool.id)}/><span className="switch-track" aria-hidden="true"><span/></span></label></div>)}</div><div className="settings-note"><Icon name="bolt" size={16}/><p>These are interface slots only. They do not run queries, call APIs or make changes outside Olympus.</p></div></section>}
+          {s.layoutTab === "controls" ? <section className="panel settings-panel" role="tabpanel"><div className="panel-heading"><div><h2>Layout & data</h2><p>Manage local drafts and the imported snapshot.</p></div></div><div className="setting-row"><div><h3>Local layout</h3><p>{s.storage ? "Blocks and draft text are saved on this device." : "Browser storage is unavailable. Session only."}</p></div><button className="button" onClick={this.exportLayout}>Export layout</button></div><div className="setting-row"><div><h3>Imported snapshot</h3><p>{s.snapshot ? `${s.snapshot.resources.length} references in memory. Not uploaded or persisted.` : "No snapshot loaded. Public repository references only."}</p></div><button className="button" disabled={!s.snapshot} onClick={() => this.setState({ snapshot: null, source: "all", provider: "all", search: "", chart: false, expanded: false, notice: "Snapshot cleared from this tab." })}>Clear snapshot</button></div><div className="setting-row"><div><h3>Start over</h3><p>Remove local drafts and restore one blank block.</p></div><button className="button" onClick={() => this.setState({ modal: { type: "reset" } })}>Reset layout</button></div><div className="settings-note"><Icon name="info" size={16}/><p>The Zeus owner label is part of the design, not authentication. Live Vercel analytics uses a separate owner password. Remote actions are unavailable.</p></div></section> : <section className="panel settings-panel" role="tabpanel"><div className="panel-heading"><div><h2>Suite sidebar</h2><p>Optional tools, without crowding the workspace.</p></div></div><div className="setting-row"><div><h3>Your tool library</h3><p>Enable, show, hide and reorder tools in one place.</p></div><button type="button" className="button" disabled={!suite.ready} onClick={() => this.openSuitePanel("library")}>Manage tools</button></div><div className="settings-note"><Icon name="info" size={16}/><p>Suite preferences and scratchpad text are separate from workspace blocks and audience drafts. Resetting one does not clear the others.</p></div></section>}
         </>}
         <footer className="workspace-footer"><span><span className="neutral-dot"/>{s.screen === "audiences" && s.audienceTab === "vercel" ? "Vercel Analytics · read-only" : s.snapshot ? `Snapshot · ${date(s.snapshot.capturedAt)} · not live` : "Reference view · no live connections"}</span><span>{s.storage ? "Layout saved on this device" : "Session-only layout"}</span></footer>
-      </main></div>{this.renderModal()}
+      </main></div>
+      {suite.active && <FeaturePanel panel={suite.active}
+        library={{ preferences: suite.preferences, saved: suite.preferencesSaved, ready: suite.ready, onPatch: this.patchSuiteTool,
+          onMove: this.moveSuiteTool, onOpen: this.openSuitePanel, onReset: () => this.updateSuitePreferences(defaultPreferences(), true) }}
+        scratchpad={{ text: suite.drafts.scratchpad, saved: suite.draftsSaved, recovery: !suite.draftsWritable,
+          onChange: this.updateScratchpad, onReset: () => this.updateScratchpad("", true) }}
+        onClose={this.closeSuitePanel} onLibrary={() => this.openSuitePanel("library")}
+        onHide={id => this.patchSuiteTool(id, { showInSidebar: false })} onDisable={id => this.patchSuiteTool(id, { enabled: false })}/>}
+      {this.renderModal()}
     </div>;
   }
 }
