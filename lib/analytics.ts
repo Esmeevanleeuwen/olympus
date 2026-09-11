@@ -1,7 +1,9 @@
 export type TrafficCounts = { pageviews: number | null; visitors: number | null };
 export type TrafficRow = TrafficCounts & { label: string };
+export type AnalyticsProject = { id: string; name: string };
+export type AnalyticsProjects = { projects: AnalyticsProject[]; defaultProjectId: string | null; teamId: string };
 export type AnalyticsReport = {
-  project: { id: string; name: string };
+  project: AnalyticsProject;
   period: { days: 7 | 30; since: string; until: string; environment: "production" };
   totals: TrafficCounts;
   daily: TrafficRow[];
@@ -9,6 +11,12 @@ export type AnalyticsReport = {
   referrers: TrafficRow[];
   updatedAt: string;
 };
+
+export function selectAnalyticsProject(catalog: AnalyticsProjects, rememberedId: string | null): string | null {
+  return catalog.projects.find(project => project.id === rememberedId)?.id
+    ?? catalog.projects.find(project => project.id === catalog.defaultProjectId)?.id
+    ?? catalog.projects[0]?.id ?? null;
+}
 
 export function analyticsPeriod(days: 7 | 30, now = new Date()): AnalyticsReport["period"] {
   const start = new Date(now);
