@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
-import type { AnalyticsReport, TrafficRow } from "../lib/analytics";
+import { selectAnalyticsProject, type AnalyticsProjects, type AnalyticsReport, type TrafficRow } from "../lib/analytics";
 
 const number = new Intl.NumberFormat("en-GB");
 const value = (count: number | null) => count === null ? "—" : number.format(count);
@@ -37,28 +37,52 @@ export function TrafficChart({ report }: { report: AnalyticsReport }) {
 
 export default function VercelAnalytics() {
   const [days, setDays] = useState<7 | 30>(7);
+  const [catalog, setCatalog] = useState<AnalyticsProjects | null>(null);
+  const [projectId, setProjectId] = useState("");
   const [report, setReport] = useState<AnalyticsReport | null>(null);
-  const [status, setStatus] = useState<"loading" | "locked" | "ready" | "error" | "setup">("loading");
+  const [status, setStatus] = useState<"loading" | "locked" | "ready" | "error" | "setup" | "empty">("loading");
   const [error, setError] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const activeRequest = useRef<AbortController | null>(null);
+  const selection = useRef<{ teamId: string; projectId: string } | null>(null);
   const mounted = useRef(true);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (chosenProjectId?: string) => {
     activeRequest.current?.abort();
     const controller = new AbortController();
     activeRequest.current = controller;
     setStatus("loading"); setError(""); setReport(null);
     try {
-      const response = await fetch(`/api/vercel-analytics?days=${days}`, { credentials: "same-origin", cache: "no-store", signal: controller.signal });
+      // Re-read the list on refresh, so newly added or removed projects are reflected.
+      const projectsResponse = await fetch("/api/vercel-analytics/projects", { credentials: "same-origin", cache: "no-store", signal: controller.signal });
+      const projectsBody = await projectsResponse.json();
+      if (controller.signal.aborted) return;
+      if (!projectsResponse.ok) {
+        setCatalog(null); setProjectId("");
+        if (projectsResponse.status === 401) { setStatus("locked"); return; }
+        setStatus(projectsBody.code === "owner_setup" || projectsBody.code === "setup_required" ? "setup" : "error");
+        setError(projectsBody.error || "Vercel projects could not be loaded."); return;
+      }
+      const available = projectsBody as AnalyticsProjects;
+      setCatalog(available);
+      const preferenceKey = `olympus:vercel-project:${available.teamId}`;
+      let rememberedId: string | null = chosenProjectId ?? (selection.current?.teamId === available.teamId ? selection.current.projectId : null);
+      if (!rememberedId) { try { rememberedId = localStorage.getItem(preferenceKey); } catch { /* Preferences are optional. */ } }
+      const selectedId = selectAnalyticsProject(available, rememberedId);
+      setProjectId(selectedId ?? "");
+      if (!selectedId) { setStatus("empty"); return; }
+      selection.current = { teamId: available.teamId, projectId: selectedId };
+      try { localStorage.setItem(preferenceKey, selectedId); } catch { /* Analytics still works when storage is disabled. */ }
+      const response = await fetch(`/api/vercel-analytics?${new URLSearchParams({ days: String(days), projectId: selectedId })}`, { credentials: "same-origin", cache: "no-store", signal: controller.signal });
       const body = await response.json();
       if (controller.signal.aborted) return;
-      if (response.status === 401) { setStatus("locked"); return; }
+      if (response.status === 401) { setCatalog(null); setProjectId(""); setStatus("locked"); return; }
       if (!response.ok) {
         setStatus(body.code === "owner_setup" || body.code === "setup_required" ? "setup" : "error");
         setError(body.error || "Analytics could not be loaded."); return;
       }
+      if (body.project?.id !== selectedId) throw new Error("The report did not match the selected project.");
       setReport(body as AnalyticsReport); setStatus("ready");
     } catch {
       if (!controller.signal.aborted) { setError("Olympus could not load analytics. Check the connection and try again."); setStatus("error"); }
@@ -84,16 +108,19 @@ export default function VercelAnalytics() {
       const response = await fetch("/api/vercel-analytics/session", { method: "DELETE", credentials: "same-origin" });
       if (!mounted.current) return;
       if (!response.ok) throw new Error();
-      setReport(null); setPassword(""); setStatus("locked");
+      setReport(null); setCatalog(null); setProjectId(""); setPassword(""); setStatus("locked");
     } catch { if (mounted.current) setError("Analytics could not be locked. Try again."); }
     finally { if (mounted.current) setSubmitting(false); }
   }
 
   return <div className="vercel-analytics">
-    <div className="traffic-controls"><label>Vercel project<select disabled value={report?.project.id || "configured"}><option value={report?.project.id || "configured"}>{report?.project.name || "Configured project"}</option></select></label>
+    <div className="traffic-controls"><label>Vercel project<select disabled={!catalog?.projects.length || status === "loading" || submitting} value={projectId} onChange={event => { setProjectId(event.target.value); void load(event.target.value); }}>
+      {!catalog?.projects.length && <option value="">{status === "empty" ? "No projects available" : "Connect to load projects"}</option>}
+      {catalog?.projects.map(project => <option key={project.id} value={project.id}>{project.name}</option>)}
+    </select></label>
       <label>Period<select value={days} disabled={status === "loading" || submitting} onChange={event => setDays(event.target.value === "30" ? 30 : 7)}><option value={7}>Last 7 days</option><option value={30}>Last 30 days</option></select></label>
-      <span className="traffic-environment">Production</span><button className="button" disabled={status === "loading" || submitting} onClick={() => void load()}>{status === "loading" ? "Loading…" : "Refresh"}</button>
-      {status === "ready" && <button className="text-button" disabled={submitting} onClick={() => void lock()}>Lock analytics</button>}
+      <span className="traffic-environment">Production</span><button className="button" disabled={status === "loading" || submitting} onClick={() => void load(projectId || undefined)}>{status === "loading" ? "Loading…" : "Refresh"}</button>
+      {catalog && <button className="text-button" disabled={status === "loading" || submitting} onClick={() => void lock()}>Lock analytics</button>}
     </div>
     {status === "loading" && <div className="panel traffic-message" role="status">Loading your Vercel analytics…</div>}
     {status === "locked" && <section className="panel traffic-unlock"><h2>Private analytics</h2><p>Enter your Olympus owner password to view traffic.</p><form onSubmit={unlock}>
@@ -101,11 +128,13 @@ export default function VercelAnalytics() {
       <button className="button primary" type="submit" disabled={submitting}>{submitting ? "Unlocking…" : "Unlock analytics"}</button>
     </form><p className="traffic-footnote">Use the password set for Olympus, rather than your Vercel token.</p></section>}
     {error && <div className="panel traffic-message" role="alert"><h2>{status === "setup" ? "Connection setup needed" : "Unable to load analytics"}</h2><p>{error}</p>{status === "setup" && <p className="traffic-footnote">Connection settings belong in the Olympus project’s .env.local file beside package.json, or its hosting environment settings.</p>}</div>}
+    {status === "empty" && <section className="panel traffic-message" role="status"><h2>No projects available</h2><p>Your Vercel token did not return any projects for the connected team. Check its team access, then refresh.</p></section>}
     {status === "ready" && report && <>
+      {report.totals.pageviews === 0 && report.daily.length === 0 && <section className="panel traffic-message" role="status"><h2>No traffic reported</h2><p>Vercel returned no production traffic for {report.project.name} in this period. Check that Web Analytics is collecting visits on this platform, or choose another period.</p></section>}
       <div className="traffic-totals"><article><span>Visitors</span><strong>{value(report.totals.visitors)}</strong><small>Selected period · production</small></article><article><span>Page views</span><strong>{value(report.totals.pageviews)}</strong><small>Selected period · production</small></article></div>
       <TrafficChart report={report}/><div className="traffic-breakdowns"><TrafficList title="Popular pages" rows={report.pages}/><TrafficList title="Traffic sources" rows={report.referrers}/></div>
       <p className="traffic-footnote">A visitor can appear on several pages or sources. Grouped visitor counts are not added together. “Others” follows Vercel’s grouping.</p>
-      <div className="traffic-source"><span>Updated {new Date(report.updatedAt).toLocaleString("en-GB", { timeZone: "UTC" })} UTC</span><a href="https://vercel.com/esmeevanleeuwens-projects/phosphoros/analytics?environment=production" target="_blank" rel="noopener noreferrer">View in Vercel ↗</a></div>
+      <div className="traffic-source"><span>{report.project.name} · Updated {new Date(report.updatedAt).toLocaleString("en-GB", { timeZone: "UTC" })} UTC</span><a href="https://vercel.com/dashboard" target="_blank" rel="noopener noreferrer">Open Vercel ↗</a></div>
     </>}
   </div>;
 }

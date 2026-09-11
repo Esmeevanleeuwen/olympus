@@ -1,19 +1,21 @@
-import { analyticsPeriod, analyticsRows, periodTotals, type AnalyticsReport } from "../analytics";
+import { analyticsPeriod, analyticsRows, periodTotals, selectAnalyticsProject, type AnalyticsProject, type AnalyticsProjects, type AnalyticsReport } from "../analytics";
 
 export class AnalyticsError extends Error {
   constructor(public readonly code: string, message: string, public readonly status: number) { super(message); }
 }
-export async function readVercelAnalytics(days: 7 | 30, fetcher: typeof fetch = fetch, now = new Date()): Promise<AnalyticsReport> {
+function object(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function connection(fetcher: typeof fetch) {
   const token = process.env.OLYMPUS_VERCEL_TOKEN?.trim();
-  const projectId = process.env.OLYMPUS_VERCEL_PROJECT_ID?.trim();
   const teamId = process.env.OLYMPUS_VERCEL_TEAM_ID?.trim();
-  if (!token || !projectId || !teamId || token === "PASTE_YOUR_TOKEN_HERE") {
-    throw new AnalyticsError("setup_required", "Add the Vercel token, project ID and team ID to Olympus’s server settings, then restart it.", 503);
+  if (!token || !teamId || token === "PASTE_YOUR_TOKEN_HERE") {
+    throw new AnalyticsError("setup_required", "Add the Vercel token and team ID to Olympus’s server settings, then restart it.", 503);
   }
-  if (!/^prj_[a-zA-Z0-9]+$/.test(projectId) || !/^team_[a-zA-Z0-9]+$/.test(teamId)) {
-    throw new AnalyticsError("setup_required", "Check the Vercel project and team IDs in Olympus’s server settings.", 503);
+  if (!/^team_[a-zA-Z0-9]+$/.test(teamId)) {
+    throw new AnalyticsError("setup_required", "Check the Vercel team ID in Olympus’s server settings.", 503);
   }
-  const period = analyticsPeriod(days, now);
   async function query(path: string, params: Record<string, string> = {}): Promise<unknown> {
     const url = new URL(path, "https://api.vercel.com");
     url.search = new URLSearchParams({ teamId: teamId!, ...params }).toString();
@@ -31,17 +33,60 @@ export async function readVercelAnalytics(days: 7 | 30, fetcher: typeof fetch = 
     try { return await response.json(); }
     catch { throw new AnalyticsError("invalid_response", "Vercel returned an unreadable response.", 502); }
   }
+  return { teamId, query };
+}
+
+export async function listVercelProjects(fetcher: typeof fetch = fetch): Promise<AnalyticsProjects> {
+  const { teamId, query } = connection(fetcher);
+  const projects = new Map<string, AnalyticsProject>();
+  const cursors = new Set<string>();
+  let from: string | undefined;
+  for (let page = 0; page < 10; page++) {
+    const body = await query("/v10/projects", { limit: "100", ...(from ? { from } : {}) });
+    const rows = Array.isArray(body) ? body : object(body) ? body.projects : null;
+    if (!Array.isArray(rows) || rows.length > 100) throw new AnalyticsError("invalid_response", "Vercel returned an unreadable project list.", 502);
+    for (const row of rows) {
+      if (!object(row) || typeof row.id !== "string" || !/^prj_[a-zA-Z0-9]+$/.test(row.id) || typeof row.name !== "string" || !row.name || row.name.length > 256 || typeof row.accountId !== "string") {
+        throw new AnalyticsError("invalid_response", "Vercel returned an incomplete project.", 502);
+      }
+      // Do not allow a project returned for another account into this team's scope.
+      if (row.accountId === teamId) projects.set(row.id, { id: row.id, name: row.name });
+    }
+    const pagination = object(body) ? body.pagination : undefined;
+    if (pagination !== undefined && !object(pagination)) throw new AnalyticsError("invalid_response", "Vercel returned unreadable project pagination.", 502);
+    const next = object(pagination) ? pagination.next : null;
+    if (next === null || next === undefined) {
+      const catalog = { teamId, projects: [...projects.values()].sort((a, b) => a.name.localeCompare(b.name)), defaultProjectId: process.env.OLYMPUS_VERCEL_PROJECT_ID?.trim() || null };
+      return { ...catalog, defaultProjectId: selectAnalyticsProject(catalog, null) };
+    }
+    if ((typeof next !== "string" || !next || next.length > 2048) && (typeof next !== "number" || !Number.isSafeInteger(next) || next < 0)) {
+      throw new AnalyticsError("invalid_response", "Vercel returned unreadable project pagination.", 502);
+    }
+    from = String(next);
+    if (cursors.has(from)) throw new AnalyticsError("invalid_response", "Vercel repeated a page of projects. Try again shortly.", 502);
+    cursors.add(from);
+  }
+  throw new AnalyticsError("project_limit", "This team has too many projects to load in one request.", 502);
+}
+
+export async function readVercelAnalytics(days: 7 | 30, fetcher: typeof fetch = fetch, now = new Date(), requestedProjectId?: string): Promise<AnalyticsReport> {
+  if (requestedProjectId !== undefined && !/^prj_[a-zA-Z0-9]+$/.test(requestedProjectId)) throw new AnalyticsError("invalid_project", "Choose a project from the list.", 400);
+  const catalog = await listVercelProjects(fetcher);
+  const projectId = requestedProjectId ?? catalog.defaultProjectId;
+  const project = catalog.projects.find(item => item.id === projectId);
+  if (!project) throw new AnalyticsError("unknown_project", "This project is not available in your connected Vercel team. Refresh the project list or choose another project.", 404);
+  const { query } = connection(fetcher);
+  const period = analyticsPeriod(days, now);
   const aggregate = (by: string, limit: number) => query("/v1/query/web-analytics/visits/aggregate", {
     projectId: projectId!, by, since: period.since, until: period.until,
     filter: "environment eq 'production'", limit: String(limit)
   });
-  const [project, totals, daily, pages, referrers] = await Promise.all([
-    query(`/v9/projects/${projectId}`), aggregate("environment", 1), aggregate("day", 100), aggregate("requestPath", 10), aggregate("referrerHostname", 10)
+  const [totals, daily, pages, referrers] = await Promise.all([
+    aggregate("environment", 1), aggregate("day", 100), aggregate("requestPath", 10), aggregate("referrerHostname", 10)
   ]);
   try {
-    if (!project || typeof project !== "object" || !("id" in project) || project.id !== projectId || !("name" in project) || typeof project.name !== "string") throw new Error("Invalid project");
     return {
-      project: { id: projectId, name: project.name }, period,
+      project, period,
       totals: periodTotals(analyticsRows(totals, "environment")),
       daily: analyticsRows(daily, "timestamp").sort((a, b) => a.label.localeCompare(b.label)),
       pages: analyticsRows(pages, "requestPath"), referrers: analyticsRows(referrers, "referrerHostname"),
