@@ -6,7 +6,9 @@ export type Resource = {
 };
 export type Block = { id: string; title: string; kind: "blank" | "note"; text: string };
 export type Snapshot = { version: 1; capturedAt: string; resources: Resource[] };
-export type Layout = { blocks: Block[]; audiences: Block[] };
+export type SuiteTool = "scratchpad" | "data-inspector" | "api-sandbox" | "command-shelf";
+export type SuiteConfig = { visible: boolean; tools: Record<SuiteTool, boolean> };
+export type Layout = { blocks: Block[]; audiences: Block[]; suite: SuiteConfig };
 export const PLATFORMS = [
   { id: "meridian", name: "Meridian", repo: "perspectief" },
   { id: "aegora", name: "Aegora", repo: "aegora" },
@@ -21,7 +23,12 @@ export const SEED: Resource[] = PLATFORMS.map(p => ({
 }));
 export const PROVIDERS: Record<Provider, string> = { supabase: "Supabase", github: "GitHub", vercel: "Vercel" };
 export const INITIAL_LAYOUT: Layout = {
-  blocks: [{ id: "initial-block", title: "Untitled block", kind: "blank", text: "" }], audiences: []
+  blocks: [{ id: "initial-block", title: "Untitled block", kind: "blank", text: "" }],
+  audiences: [],
+  suite: {
+    visible: false,
+    tools: { scratchpad: true, "data-inspector": false, "api-sandbox": false, "command-shelf": false }
+  }
 };
 function object(value: unknown): value is Record<string, unknown> { return !!value && typeof value === "object" && !Array.isArray(value); }
 function text(value: unknown, max = 160): value is string { return typeof value === "string" && value.length <= max; }
@@ -69,7 +76,18 @@ export function parseLayout(input: unknown): Layout {
       return { id: item.id, title: item.title, kind: item.kind as Block["kind"], text: item.text };
     });
   };
-  return { blocks: parseBlocks(input.blocks), audiences: parseBlocks(input.audiences) };
+  const suiteInput = object(input.suite) ? input.suite : INITIAL_LAYOUT.suite;
+  const toolsInput = object(suiteInput.tools) ? suiteInput.tools : INITIAL_LAYOUT.suite.tools;
+  const suite: SuiteConfig = {
+    visible: typeof suiteInput.visible === "boolean" ? suiteInput.visible : false,
+    tools: {
+      scratchpad: typeof toolsInput.scratchpad === "boolean" ? toolsInput.scratchpad : true,
+      "data-inspector": typeof toolsInput["data-inspector"] === "boolean" ? toolsInput["data-inspector"] : false,
+      "api-sandbox": typeof toolsInput["api-sandbox"] === "boolean" ? toolsInput["api-sandbox"] : false,
+      "command-shelf": typeof toolsInput["command-shelf"] === "boolean" ? toolsInput["command-shelf"] : false
+    }
+  };
+  return { blocks: parseBlocks(input.blocks), audiences: parseBlocks(input.audiences), suite };
 }
 export function resourcesWithSnapshot(snapshot: Snapshot | null): Resource[] {
   const map = new Map(SEED.map(row => [row.id, row]));
