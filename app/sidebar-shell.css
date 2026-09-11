@@ -1,50 +1,360 @@
-/* Olympus sidebar shell — visual-only controls layered over the existing dashboard. */
-html[data-theme="dark"]{color-scheme:dark}
-html[data-theme="light"]{color-scheme:light;--bg:#f4f5f7;--surface:#fff;--surface-raised:#f8f8fb;--line:#e1e3e8;--text:#1c1e24;--muted:#6c707c;--dim:#9094a0;--accent:#7569d6;--gold:#9e8050}
+/* CodePen-inspired Olympus sidebar shell. Visual only: existing Olympus screens and tools are unchanged. */
+html[data-theme="light"]{
+  color-scheme:light;
+  --bg:#eef2ff;
+  --surface:#fff;
+  --surface-raised:#f6f5ff;
+  --line:#e4e4eb;
+  --text:#34343b;
+  --muted:#707070;
+  --dim:#8d8d95;
+  --accent:#695cfe;
+  --gold:#8e77e8;
+}
+html[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#18191a;
+  --surface:#242526;
+  --surface-raised:#3a3b3c;
+  --line:#343536;
+  --text:#f2f2f2;
+  --muted:#ccc;
+  --dim:#9b9b9b;
+  --accent:#695cfe;
+  --gold:#b9adff;
+}
 
-.sidebar.olympus-sidebar-enhanced{width:232px;padding-top:20px;padding-bottom:14px;overflow:hidden;transition:width .2s ease,background .15s,border-color .15s}
-.sidebar.olympus-sidebar-enhanced>.brand{padding-right:42px;min-height:44px;white-space:nowrap}
-.sidebar.olympus-sidebar-enhanced>.nav-label{margin-top:22px}
-.sidebar.olympus-sidebar-enhanced nav{flex:none}
-.sidebar.olympus-sidebar-enhanced>.sidebar-bottom{display:none}
-.olympus-sidebar-search-mount{margin:14px 0 0}
-.olympus-feature-search{height:42px;display:flex;align-items:center;gap:9px;padding:0 10px;border:1px solid var(--line);border-radius:9px;background:var(--surface-raised);color:var(--dim);cursor:text}
-.olympus-feature-search:focus-within{border-color:var(--accent)}
-.olympus-feature-search input{width:100%;min-width:0;min-height:38px;padding:0;border:0;outline:0;background:transparent;color:var(--text);font-size:12px}
-.olympus-feature-search button{width:26px;height:28px;min-width:26px;padding:0;border:0;background:transparent;color:var(--muted)}
-.olympus-sidebar-bottom-mount{margin-top:auto;padding-top:11px;border-top:1px solid var(--line)}
-.olympus-sidebar-utility-stack{display:grid;gap:4px}
-.olympus-theme-toggle,.olympus-collapse-toggle{width:100%;min-height:42px;justify-content:flex-start;padding:8px 10px;border:0;border-radius:8px;background:transparent;color:var(--muted);font-size:12px;gap:10px}
-.olympus-theme-toggle:hover,.olympus-collapse-toggle:hover{background:var(--surface-raised);color:var(--text)}
-.olympus-theme-toggle>.olympus-sidebar-label,.olympus-collapse-toggle>.olympus-sidebar-label{flex:1;text-align:left;white-space:nowrap}
-.olympus-theme-switch{width:34px;height:19px;padding:2px;border:1px solid var(--line);border-radius:999px;background:#e5e6eb;flex:none;transition:background .15s,border-color .15s}
-.olympus-theme-switch>span{display:block;width:13px;height:13px;border-radius:50%;background:#8b8e99;transition:transform .15s,background .15s}
-.olympus-theme-toggle[aria-pressed="true"] .olympus-theme-switch{background:#4d4563;border-color:#685d89}.olympus-theme-toggle[aria-pressed="true"] .olympus-theme-switch>span{transform:translateX(15px);background:#eeeaff}
+/* ===== Sidebar frame: mirrors the reference dimensions ===== */
+.sidebar.olympus-sidebar-enhanced{
+  position:fixed;
+  top:0;
+  left:0;
+  width:250px;
+  height:100vh;
+  padding:10px 14px;
+  background:var(--surface);
+  border-right:0;
+  z-index:100;
+  overflow:hidden;
+  transition:width .3s ease,background-color .3s ease;
+}
+.sidebar.olympus-sidebar-enhanced~.app-body{
+  width:calc(100% - 250px);
+  margin-left:250px;
+  transition:width .3s ease,margin-left .3s ease;
+}
 
-html.olympus-sidebar-collapsed .sidebar.olympus-sidebar-enhanced{width:72px;padding-left:9px;padding-right:9px}
-html.olympus-sidebar-collapsed .app-body{width:calc(100% - 72px);margin-left:72px}
-html.olympus-sidebar-collapsed .sidebar .brand>span:last-child,html.olympus-sidebar-collapsed .sidebar .nav-label,html.olympus-sidebar-collapsed .sidebar .nav-item>span:not(.nav-dot),html.olympus-sidebar-collapsed .sidebar .suite-nav-item>span:not(.suite-test-tag),html.olympus-sidebar-collapsed .sidebar .suite-shortcut>span:not(.suite-shortcut-dot),html.olympus-sidebar-collapsed .olympus-sidebar-label{display:none!important}
-html.olympus-sidebar-collapsed .sidebar .brand{justify-content:center;padding:0}
-html.olympus-sidebar-collapsed .olympus-sidebar-search-mount{margin-top:13px}
-html.olympus-sidebar-collapsed .olympus-feature-search{width:42px;margin:auto;padding:0;justify-content:center;cursor:pointer}
-html.olympus-sidebar-collapsed .olympus-feature-search input,html.olympus-sidebar-collapsed .olympus-feature-search button{display:none}
-html.olympus-sidebar-collapsed .sidebar nav{align-items:center}
-html.olympus-sidebar-collapsed .sidebar .nav-item,html.olympus-sidebar-collapsed .sidebar .suite-nav-item,html.olympus-sidebar-collapsed .sidebar .suite-shortcut{width:44px;min-width:44px;justify-content:center;padding-left:0;padding-right:0;margin-left:auto;margin-right:auto;position:relative}
-html.olympus-sidebar-collapsed .sidebar .nav-dot,html.olympus-sidebar-collapsed .sidebar .suite-shortcut-dot{position:absolute;right:4px;top:7px;margin:0}
+/* ===== Brand/header ===== */
+.sidebar.olympus-sidebar-enhanced>.brand{
+  position:relative;
+  display:flex;
+  align-items:center;
+  min-height:64px;
+  padding:0;
+  gap:0;
+  color:var(--text);
+  letter-spacing:0;
+  white-space:nowrap;
+}
+.sidebar.olympus-sidebar-enhanced>.brand .brand-mark{
+  width:60px;
+  min-width:60px;
+  height:60px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#fff;
+}
+.sidebar.olympus-sidebar-enhanced>.brand .brand-mark::before{
+  content:"OL";
+  width:40px;
+  height:40px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  background:#695cfe;
+  color:#fff;
+  font-size:13px;
+  font-weight:700;
+  letter-spacing:.4px;
+}
+.sidebar.olympus-sidebar-enhanced>.brand .brand-mark>svg{display:none}
+.sidebar.olympus-sidebar-enhanced>.brand>span:last-child{
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  font-size:18px;
+  font-weight:600;
+  line-height:1.2;
+  color:var(--text);
+}
+.sidebar.olympus-sidebar-enhanced>.brand small{
+  display:block;
+  margin-top:2px;
+  color:var(--muted);
+  font-size:14px;
+  font-weight:300;
+  letter-spacing:0;
+}
+.olympus-sidebar-toggle-mount{
+  position:absolute;
+  top:29px;
+  right:-27px;
+  width:25px;
+  height:25px;
+  z-index:3;
+}
+.olympus-header-toggle{
+  width:25px;
+  height:25px;
+  min-width:25px;
+  padding:0;
+  border:0;
+  border-radius:50%;
+  background:#695cfe;
+  color:#fff;
+  box-shadow:none;
+  transform:rotate(180deg);
+  transition:transform .3s ease,background .3s ease;
+}
+.olympus-header-toggle:hover{background:#5c50ed}
+
+/* ===== Search ===== */
+.olympus-sidebar-search-mount{margin-top:14px}
+.olympus-feature-search{
+  height:50px;
+  display:flex;
+  align-items:center;
+  border:0;
+  border-radius:6px;
+  background:var(--surface-raised);
+  color:var(--muted);
+  overflow:hidden;
+  cursor:text;
+  transition:background-color .3s ease;
+}
+.olympus-search-icon{
+  min-width:60px;
+  height:50px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:var(--muted);
+}
+.olympus-feature-search input{
+  width:100%;
+  height:50px;
+  min-height:50px;
+  padding:0 10px 0 0;
+  border:0;
+  outline:0;
+  border-radius:6px;
+  background:transparent;
+  color:var(--text);
+  font-size:16px;
+  font-weight:400;
+}
+.olympus-feature-search input::placeholder{color:var(--muted)}
+.olympus-search-clear{
+  width:38px;
+  min-width:38px;
+  height:50px;
+  border:0;
+  background:transparent;
+  color:var(--muted);
+}
+
+/* ===== Existing Olympus navigation rendered like the reference menu ===== */
+.sidebar.olympus-sidebar-enhanced>.nav-label,
+.sidebar.olympus-sidebar-enhanced .suite-nav .nav-label{display:none!important}
+.sidebar.olympus-sidebar-enhanced nav{
+  display:flex;
+  flex-direction:column;
+  gap:0;
+  margin-top:15px;
+}
+.sidebar.olympus-sidebar-enhanced .nav-item,
+.sidebar.olympus-sidebar-enhanced .suite-nav-item,
+.sidebar.olympus-sidebar-enhanced .suite-shortcut{
+  position:relative;
+  width:100%;
+  height:50px;
+  min-height:50px;
+  margin-top:10px;
+  padding:0;
+  gap:0;
+  justify-content:flex-start;
+  border:0;
+  border-radius:6px;
+  background:transparent;
+  color:var(--muted);
+  font-size:16px;
+  font-weight:300;
+  overflow:hidden;
+  transition:background-color .2s ease,color .2s ease;
+}
+.sidebar.olympus-sidebar-enhanced .nav-item>svg,
+.sidebar.olympus-sidebar-enhanced .suite-nav-item>svg,
+.sidebar.olympus-sidebar-enhanced .suite-shortcut>svg{
+  min-width:60px;
+  width:60px;
+  height:20px;
+  margin:0;
+  padding:0 20px;
+  color:currentColor;
+}
+.sidebar.olympus-sidebar-enhanced .nav-item>span:not(.nav-dot),
+.sidebar.olympus-sidebar-enhanced .suite-nav-item>span:not(.suite-test-tag),
+.sidebar.olympus-sidebar-enhanced .suite-shortcut>span:not(.suite-shortcut-dot){
+  opacity:1;
+  white-space:nowrap;
+  transition:opacity .2s ease;
+}
+.sidebar.olympus-sidebar-enhanced .nav-item:hover,
+.sidebar.olympus-sidebar-enhanced .suite-nav-item:hover,
+.sidebar.olympus-sidebar-enhanced .suite-shortcut:hover,
+.sidebar.olympus-sidebar-enhanced .nav-item.active,
+.sidebar.olympus-sidebar-enhanced .suite-shortcut.is-active{
+  background:#695cfe;
+  color:#fff;
+}
+.sidebar.olympus-sidebar-enhanced .nav-dot,
+.sidebar.olympus-sidebar-enhanced .suite-shortcut-dot{
+  width:6px;
+  height:6px;
+  margin-left:auto;
+  margin-right:15px;
+  background:currentColor;
+  border-radius:50%;
+}
+.sidebar.olympus-sidebar-enhanced .suite-test-tag{
+  margin-left:auto;
+  margin-right:12px;
+  border:0;
+  color:inherit;
+  font-size:8px;
+  opacity:.65;
+}
+.sidebar.olympus-sidebar-enhanced .suite-nav{
+  margin-top:8px;
+  padding-top:0;
+  border-top:0;
+  min-height:0;
+}
+.sidebar.olympus-sidebar-enhanced .suite-nav>p{
+  margin:14px 10px 0 60px;
+  padding:0;
+  color:var(--dim);
+  font-size:11px;
+}
+
+/* Hide old footer: the reference puts controls in a dedicated bottom block. */
+.sidebar.olympus-sidebar-enhanced>.sidebar-bottom{display:none!important}
+.olympus-sidebar-bottom-mount{
+  position:absolute;
+  left:14px;
+  right:14px;
+  bottom:16px;
+}
+.olympus-sidebar-bottom-content{width:100%}
+.olympus-theme-toggle{
+  position:relative;
+  width:100%;
+  height:50px;
+  min-height:50px;
+  padding:0;
+  justify-content:flex-start;
+  gap:0;
+  border:0;
+  border-radius:6px;
+  background:var(--surface-raised);
+  color:var(--muted);
+  font-size:16px;
+  font-weight:300;
+  overflow:hidden;
+  transition:background-color .3s ease,color .3s ease;
+}
+.olympus-mode-icon{
+  position:relative;
+  min-width:60px;
+  width:60px;
+  height:50px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.olympus-mode-text{
+  white-space:nowrap;
+  opacity:1;
+  transition:opacity .2s ease;
+}
+.olympus-theme-switch{
+  position:absolute;
+  right:0;
+  top:0;
+  height:50px;
+  min-width:60px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.olympus-theme-switch::before{
+  content:"";
+  position:absolute;
+  width:40px;
+  height:22px;
+  border-radius:25px;
+  background:#ddd;
+  transition:background-color .3s ease;
+}
+.olympus-theme-switch>span{
+  position:absolute;
+  width:15px;
+  height:15px;
+  left:15px;
+  top:50%;
+  transform:translateY(-50%);
+  border-radius:50%;
+  background:#fff;
+  transition:left .3s ease,background-color .3s ease;
+}
+html[data-theme="dark"] .olympus-theme-switch::before{background:#fff}
+html[data-theme="dark"] .olympus-theme-switch>span{left:30px;background:#242526}
+
+/* ===== Collapsed state: same 88px rail as the reference ===== */
+html.olympus-sidebar-collapsed .sidebar.olympus-sidebar-enhanced{width:88px}
+html.olympus-sidebar-collapsed .sidebar.olympus-sidebar-enhanced~.app-body{width:calc(100% - 88px);margin-left:88px}
+html.olympus-sidebar-collapsed .olympus-header-toggle{transform:rotate(0deg)}
+html.olympus-sidebar-collapsed .sidebar .brand>span:last-child,
+html.olympus-sidebar-collapsed .sidebar .nav-item>span:not(.nav-dot),
+html.olympus-sidebar-collapsed .sidebar .suite-nav-item>span:not(.suite-test-tag),
+html.olympus-sidebar-collapsed .sidebar .suite-shortcut>span:not(.suite-shortcut-dot),
+html.olympus-sidebar-collapsed .olympus-mode-text{opacity:0;pointer-events:none}
+html.olympus-sidebar-collapsed .sidebar .brand{width:60px}
+html.olympus-sidebar-collapsed .olympus-feature-search{width:60px;cursor:pointer}
+html.olympus-sidebar-collapsed .olympus-feature-search input,
+html.olympus-sidebar-collapsed .olympus-search-clear{display:none}
+html.olympus-sidebar-collapsed .sidebar .nav-item,
+html.olympus-sidebar-collapsed .sidebar .suite-nav-item,
+html.olympus-sidebar-collapsed .sidebar .suite-shortcut{width:60px}
+html.olympus-sidebar-collapsed .sidebar .nav-dot,
+html.olympus-sidebar-collapsed .sidebar .suite-shortcut-dot,
 html.olympus-sidebar-collapsed .sidebar .suite-test-tag{display:none}
-html.olympus-sidebar-collapsed .olympus-theme-toggle,html.olympus-sidebar-collapsed .olympus-collapse-toggle{width:44px;min-width:44px;margin:auto;padding:0;justify-content:center}
+html.olympus-sidebar-collapsed .olympus-theme-toggle{width:60px}
 html.olympus-sidebar-collapsed .olympus-theme-switch{display:none}
+html.olympus-sidebar-collapsed .olympus-sidebar-bottom-mount{right:auto;width:60px}
 
+/* ===== Theme: keep all existing Olympus functionality, only recolour the shell/workspace ===== */
 html[data-theme="light"] body{background:var(--bg);color:var(--text)}
+html[data-theme="dark"] body{background:var(--bg);color:var(--text)}
 html[data-theme="light"] .sidebar,html[data-theme="light"] .topbar{background:#fff}
+html[data-theme="dark"] .sidebar,html[data-theme="dark"] .topbar{background:#242526}
 html[data-theme="light"] input,html[data-theme="light"] select,html[data-theme="light"] textarea{background:#fff;border-color:var(--line);color:var(--text)}
 html[data-theme="light"] .platform-control select{color:var(--text)}
 html[data-theme="light"] .panel,html[data-theme="light"] .traffic-totals article{background:#fff}
 html[data-theme="light"] .resource-table th,html[data-theme="light"] .suite-panel-footer{background:#f7f7fa}
 html[data-theme="light"] .resource-table tr:hover td{background:#f7f7fa}
-html[data-theme="light"] .search-input,html[data-theme="light"] .view-switch,html[data-theme="light"] .olympus-feature-search{background:#f7f7fa}
-html[data-theme="light"] .nav-item:hover,html[data-theme="light"] .suite-nav-item:hover,html[data-theme="light"] .suite-shortcut:hover,html[data-theme="light"] .olympus-theme-toggle:hover,html[data-theme="light"] .olympus-collapse-toggle:hover{background:#f4f3f8}
-html[data-theme="light"] .nav-item.active,html[data-theme="light"] .suite-shortcut.is-active{background:#eeebfb;border-color:#ded9f5;color:#4f4588}
+html[data-theme="light"] .search-input,html[data-theme="light"] .view-switch{background:#f7f7fa}
 html[data-theme="light"] .preview-tag{background:#f7f7fa;border-color:var(--line);color:#666a75}
 html[data-theme="light"] .owner-avatar{background:#f4efe7;border-color:#dacdbb;color:#8c6e40}
 html[data-theme="light"] .provider-mark{background:#f7f7fa;border-color:var(--line);color:#6e7180}
@@ -53,18 +363,56 @@ html[data-theme="light"] .small-count{background:#f0eff5;border-color:#e1deec;co
 html[data-theme="light"] .bar-track{background:#e9e7ef}
 html[data-theme="light"] .placeholder-mark{background:#f1eef8;border-color:#ded7eb;color:#70658e}
 html[data-theme="light"] .placeholder-lines span{background:#e2e0e8!important}
-html[data-theme="light"] .suite-panel,html[data-theme="light"] dialog{background:#fff;border-color:#d6d8df;color:var(--text);box-shadow:0 30px 100px #45455424}
-html[data-theme="light"] .suite-tool-card{background:#fafafd}html[data-theme="light"] .suite-tool-symbol{background:#f1eef8;border-color:#dfd8ef;color:#675d85}
-html[data-theme="light"] .suite-note-field textarea,html[data-theme="light"] .query-block{background:#fafafd;border-color:var(--line)}
-html[data-theme="light"] .button{background:#fff;border-color:#dadce3;color:#3d4048}html[data-theme="light"] .button:hover{background:#f5f5f8;border-color:#c7c9d1}html[data-theme="light"] .button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+html[data-theme="light"] dialog{background:#fff;border-color:#d6d8df;color:var(--text);box-shadow:0 30px 100px #45455424}
+html[data-theme="light"] .button{background:#fff;border-color:#dadce3;color:#3d4048}
+html[data-theme="light"] .button:hover{background:#f5f5f8;border-color:#c7c9d1}
+html[data-theme="light"] .button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
 
-@media(max-width:1150px) and (min-width:641px){.sidebar.olympus-sidebar-enhanced{width:210px}.sidebar.olympus-sidebar-enhanced~.app-body{margin-left:210px;width:calc(100% - 210px)}html.olympus-sidebar-collapsed .sidebar.olympus-sidebar-enhanced~.app-body{margin-left:72px;width:calc(100% - 72px)}}
+/* Keep the feature list scrollable while the bottom switch remains pinned. */
+.sidebar.olympus-sidebar-enhanced nav,
+.sidebar.olympus-sidebar-enhanced .suite-nav{flex-shrink:0}
+.sidebar.olympus-sidebar-enhanced{overflow-y:auto;scrollbar-width:none;padding-bottom:82px}
+.sidebar.olympus-sidebar-enhanced::-webkit-scrollbar{display:none}
+
+/* ===== Mobile: same drawer principle as the reference, adapted to the existing app ===== */
 @media(max-width:640px){
-  .sidebar.olympus-sidebar-enhanced,html.olympus-sidebar-collapsed .sidebar.olympus-sidebar-enhanced{position:static;width:100%;height:auto;padding:16px 18px 0;overflow:visible}
-  .sidebar.olympus-sidebar-enhanced~.app-body,html.olympus-sidebar-collapsed .sidebar.olympus-sidebar-enhanced~.app-body{width:100%;margin-left:0}
-  html.olympus-sidebar-collapsed .sidebar .brand>span:last-child{display:block!important}
-  html.olympus-sidebar-collapsed .sidebar .nav-item>span:not(.nav-dot),html.olympus-sidebar-collapsed .sidebar .suite-nav-item>span:not(.suite-test-tag),html.olympus-sidebar-collapsed .sidebar .suite-shortcut>span:not(.suite-shortcut-dot){display:inline!important}
-  .olympus-sidebar-search-mount{margin-top:13px}.olympus-feature-search,html.olympus-sidebar-collapsed .olympus-feature-search{width:100%;margin:0;padding:0 10px;justify-content:flex-start}.olympus-feature-search input,html.olympus-sidebar-collapsed .olympus-feature-search input{display:block}
-  .olympus-sidebar-bottom-mount{padding:9px 0;border-top:0}.olympus-sidebar-utility-stack{display:flex;justify-content:space-between}.olympus-collapse-toggle{display:none}.olympus-theme-toggle,html.olympus-sidebar-collapsed .olympus-theme-toggle{width:auto;min-width:0;padding:8px 10px}.olympus-theme-switch,html.olympus-sidebar-collapsed .olympus-theme-switch{display:block}.olympus-theme-toggle .olympus-sidebar-label{display:inline!important}
+  .sidebar.olympus-sidebar-enhanced,
+  html.olympus-sidebar-collapsed .sidebar.olympus-sidebar-enhanced{
+    position:relative;
+    width:100%;
+    height:auto;
+    min-height:0;
+    padding:10px 14px 18px;
+    overflow:visible;
+  }
+  .sidebar.olympus-sidebar-enhanced~.app-body,
+  html.olympus-sidebar-collapsed .sidebar.olympus-sidebar-enhanced~.app-body{width:100%;margin-left:0}
+  .olympus-sidebar-toggle-mount{display:none}
+  .sidebar.olympus-sidebar-enhanced>.brand{width:auto}
+  .sidebar.olympus-sidebar-enhanced>.brand>span:last-child,
+  html.olympus-sidebar-collapsed .sidebar .brand>span:last-child{display:flex;opacity:1;pointer-events:auto}
+  .olympus-feature-search,
+  html.olympus-sidebar-collapsed .olympus-feature-search{width:100%}
+  .olympus-feature-search input,
+  html.olympus-sidebar-collapsed .olympus-feature-search input{display:block}
+  .sidebar.olympus-sidebar-enhanced nav{flex-direction:row;overflow-x:auto;margin-top:10px;gap:6px;padding-bottom:2px}
+  .sidebar.olympus-sidebar-enhanced .nav-item,
+  html.olympus-sidebar-collapsed .sidebar .nav-item{width:auto;min-width:max-content;height:44px;min-height:44px;margin-top:0;padding:0 13px}
+  .sidebar.olympus-sidebar-enhanced .nav-item>svg{width:20px;min-width:20px;padding:0;margin-right:8px}
+  .sidebar.olympus-sidebar-enhanced .nav-item>span:not(.nav-dot),
+  html.olympus-sidebar-collapsed .sidebar .nav-item>span:not(.nav-dot){opacity:1;pointer-events:auto}
+  .sidebar.olympus-sidebar-enhanced .suite-nav{display:flex;overflow-x:auto;margin:8px 0 0;gap:6px}
+  .sidebar.olympus-sidebar-enhanced .suite-nav-item,
+  html.olympus-sidebar-collapsed .sidebar .suite-nav-item{width:auto;min-width:max-content;height:44px;min-height:44px;margin:0;padding:0 13px}
+  .sidebar.olympus-sidebar-enhanced .suite-nav-item>svg{width:20px;min-width:20px;padding:0;margin-right:8px}
+  .sidebar.olympus-sidebar-enhanced .suite-nav-item>span:not(.suite-test-tag),
+  html.olympus-sidebar-collapsed .sidebar .suite-nav-item>span:not(.suite-test-tag){opacity:1;pointer-events:auto}
+  .olympus-sidebar-bottom-mount{position:relative;left:auto;right:auto;bottom:auto;margin-top:10px;width:100%!important}
+  .olympus-theme-toggle,html.olympus-sidebar-collapsed .olympus-theme-toggle{width:100%}
+  html.olympus-sidebar-collapsed .olympus-mode-text{opacity:1;pointer-events:auto}
+  html.olympus-sidebar-collapsed .olympus-theme-switch{display:flex}
 }
-@media(prefers-reduced-motion:reduce){.sidebar.olympus-sidebar-enhanced,.app-body,.olympus-theme-switch,.olympus-theme-switch>span{transition:none!important}}
+
+@media(prefers-reduced-motion:reduce){
+  .sidebar.olympus-sidebar-enhanced,.app-body,.olympus-header-toggle,.olympus-theme-switch::before,.olympus-theme-switch>span{transition:none!important}
+}
