@@ -1,0 +1,1 @@
+{"compilerOptions":{"target":"ES2020","module":"commonjs","strict":true,"outDir":".suite-test","skipLibCheck":true},"include":["lib/features.ts","lib/suite-preferences.ts"]}

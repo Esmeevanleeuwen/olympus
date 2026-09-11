@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "test": "tsc -p tsconfig.model.json && tsc -p tsconfig.analytics.json && node --test tests/model.test.cjs tests/analytics.test.cjs"
+    "test": "tsc -p tsconfig.model.json && tsc -p tsconfig.analytics.json && node --test tests/model.test.cjs tests/analytics.test.cjs",
+    "test:suite": "tsc -p tsconfig.suite.json && node --test tests/suite.test.cjs"
   },
   "dependencies": { "next": "16.3.4", "react": "19.2.8", "react-dom": "19.2.8" },
   "devDependencies": { "typescript": "5.8.3", "@types/node": "22.13.10", "@types/react": "19.0.10", "@types/react-dom": "19.0.4" },
