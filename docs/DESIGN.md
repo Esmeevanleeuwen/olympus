@@ -8,7 +8,9 @@ A 208px sidebar contains Overview, Audiences and Layout. A 72px top bar contains
 
 The resource panel switches between a table and zero-based bars. Search, source selection and an explicit database selector reveal a little information at a time. Selecting an item opens a focused detail dialog. Platform changes filter only confirmed mappings; unassigned database tables are never silently assigned to a website.
 
-The secondary area starts blank. Add a reusable block, rename it, choose Blank or Note, write optional text, move it up or down, or remove it. Lorem ipsum appears only as an input placeholder. Audiences starts empty and allows named draft blocks; it does not invent visitors or demographic segments.
+The secondary area starts blank. Add a reusable block, rename it, choose Blank or Note, write optional text, move it up or down, or remove it. Lorem ipsum appears only as an input placeholder.
+
+Audiences contains the saved Supabase snapshot view. A required project selector keeps databases separate. Up to three clickable summary cards show separately named table counts for the selected project. Counts from unrelated tables are never summed; unavailable counts remain unknown. The table list is searchable and always uses simple zero-based bars. Opening a table shows its source, exact stored count and the read-only count query. When no snapshot is loaded, the page shows one clear import action instead of invented audience data.
 
 Layout contains two inner tabs. **Layout & data** keeps the existing local storage, snapshot and reset controls. **Suite sidebar** controls an optional group of experimental tools. The whole group can be hidden, and Scratchpad, Data inspector, API sandbox and Command shelf can be shown separately. Enabled tools appear under a clearly marked `SUITE · TEST SPACE` section in the main sidebar. They are interface slots only and do not run external actions.
 
@@ -18,7 +20,7 @@ Near-black #0E0F11 background; #15161A surfaces; #282A32 boundaries; #F3F3F6 pri
 ## Interaction and states
 All visible controls must work. Keyboard focus is visible. Modals trap focus natively, close with Escape and return focus. Import validation errors appear beside the importer. Missing data uses an em dash or an empty state, never a fabricated zero. A real zero remains visible.
 
-The selected table chart uses a common zero baseline and retains its scale during text searches. Tables in different databases remain separate. Mixed-source metrics are never added together.
+The selected table chart uses a common zero baseline and retains its scale during text searches. Tables in different databases remain separate. Mixed-source metrics are never added together. The Audiences project selector never offers a combined-project option.
 
 On tablet the blank blocks move below resources. On small screens the sidebar becomes compact navigation, enabled Suite tools become a horizontally scrollable row, the selectors stack and the table hides secondary columns. Controls remain at least 40px high where possible. Reduced-motion preferences disable transitions.
 

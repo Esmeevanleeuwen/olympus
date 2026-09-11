@@ -9,11 +9,11 @@ Read [the design notes](docs/DESIGN.md) before adding features.
 Use Node.js 22 or newer:
 
 ```sh
-npm install
+npm ci
 npm run dev
 ```
 
-Open http://localhost:3000. Dependency versions are pinned in package.json. Generate and commit package-lock.json from the first successful npm install before deploying.
+Open http://localhost:3000. Dependency versions are pinned in package.json and package-lock.json.
 
 ```sh
 npm run test
@@ -23,7 +23,7 @@ npm run build
 
 ## What works
 
-Platform selection; source filtering; resource search; table and bar views; source details; local snapshot import; adding, renaming, reordering and removing blocks; draft notes; empty audience drafts; local layout persistence; layout export and reset.
+Platform selection; source filtering; resource search; table and bar views; source details; local snapshot import; adding, renaming, reordering and removing blocks; draft notes; the Audiences snapshot dashboard; local layout persistence; layout export and reset; optional Suite sidebar controls.
 
 No live service connection, record editing, GitHub writes, deployment actions, analytics or AI judgement are implemented. Public repository references are not live connection indicators. The app does not inherit the connectors available in ChatGPT.
 
@@ -57,4 +57,4 @@ Add owner authentication, server-side authorization on every resource, least-pri
 
 The offline UI preview and pure TypeScript model were tested: filtering, dialogs, charts, block editing, snapshot validation, local persistence and responsive layout. The offline harness uses the installed React 16 UMD renderer; production source targets React 19.
 
-A production Next.js install/build could not be run in the build container because the package registry was unreachable. Run the commands above before publishing. No Vercel production project or Supabase record was changed.
+The Audiences update passes all 15 model tests, TypeScript checks and a production Next.js build. A component rendering check covers project separation, unavailable and zero counts, searching beyond the first six tables, a stable chart scale and the empty import state. No live Supabase connection is included.
