@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { SidebarConfig, SuiteConfig, SuiteTool } from "../lib/workspace";
 import type { DataWorkspaceState } from "../lib/data-workspace-bridge";
 
-type Screen = "workspace" | "audiences" | "layout";
+type Screen = "components" | "workspace" | "audiences" | "layout";
 type Props = {
   screen: Screen;
   config: SidebarConfig;
@@ -57,7 +57,7 @@ export default function WorkspaceSidebar({ screen, config, suite, data, tools, i
       <div className="simple-sidebar-scroll">
         <div className="nav-label">WORKSPACE</div>
         <nav aria-label="Main navigation">{([
-          ["workspace", "grid", "Overview"], ["audiences", "people", "Audiences"], ["layout", "sliders", "Layout"]
+          ["components", "cube", "Components"], ["workspace", "grid", "Overview"], ["audiences", "people", "Audiences"], ["layout", "sliders", "Layout"]
         ] as const).map(([target, symbol, label]) => <button key={target} className={`nav-item ${screen === target ? "active" : ""}`}
           aria-current={screen === target ? "page" : undefined} onClick={() => { onNavigate(target); closeOnMobile(); }}>
           {icon(symbol, 18)}<span>{label}</span>{screen === target && <span className="nav-dot"/>}

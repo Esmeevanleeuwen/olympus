@@ -6,6 +6,13 @@ export type Resource = {
 };
 export type Block = { id: string; title: string; kind: "blank" | "note"; text: string };
 export type Snapshot = { version: 1; capturedAt: string; resources: Resource[] };
+export type ComponentEvidence = { resource: Resource; signal: "exact name" | "shared name" | "source reference" };
+export type WorkspaceComponent = {
+  id: string;
+  name: string;
+  evidence: ComponentEvidence[];
+  confidence: "confirmed" | "strong" | "possible";
+};
 export type SuiteTool = "scratchpad" | "data-inspector" | "api-sandbox" | "command-shelf" | "data-tables";
 export type SuiteConfig = { visible: boolean; tools: Record<SuiteTool, boolean> };
 export type SidebarConfig = { collapsed: boolean; width: "compact" | "wide"; search: boolean; counts: boolean };
@@ -105,6 +112,35 @@ export function resourcesWithSnapshot(snapshot: Snapshot | null): Resource[] {
   const map = new Map(SEED.map(row => [row.id, row]));
   for (const row of snapshot?.resources ?? []) map.set(row.id, row);
   return [...map.values()];
+}
+function componentKey(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().replace(/\b(table|project|repository|repo|public|src|components?)\b/g, "").replace(/\s+/g, " ").trim();
+}
+function componentTokens(value: string): Set<string> {
+  return new Set(componentKey(value).split(" ").filter(token => token.length > 2));
+}
+export function buildComponents(resources: Resource[]): WorkspaceComponent[] {
+  const groups = new Map<string, ComponentEvidence[]>();
+  for (const resource of resources) {
+    const key = componentKey(resource.name) || resource.id;
+    const evidence = groups.get(key) ?? [];
+    evidence.push({ resource, signal: evidence.length ? "exact name" : "source reference" });
+    groups.set(key, evidence);
+  }
+  return [...groups.entries()].map(([key, evidence]): WorkspaceComponent => ({
+    id: `component:${key}`,
+    name: evidence[0].resource.name,
+    evidence,
+    confidence: evidence.length > 1
+      ? evidence.some(item => item.resource.provider === "supabase") && evidence.some(item => item.resource.provider === "github" || item.resource.provider === "vercel") ? "strong" : "possible"
+      : "possible"
+  })).sort((a, b) => b.evidence.length - a.evidence.length || a.name.localeCompare(b.name));
+}
+export function componentSimilarity(component: WorkspaceComponent, other: WorkspaceComponent): number {
+  const left = componentTokens(component.name), right = componentTokens(other.name);
+  if (!left.size || !right.size) return 0;
+  const shared = [...left].filter(token => right.has(token)).length;
+  return shared / Math.max(left.size, right.size);
 }
 export function filterResources(rows: Resource[], platform: string, provider: string, source: string, search = ""): Resource[] {
   const q = search.trim().toLowerCase();
