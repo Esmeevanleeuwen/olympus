@@ -1,0 +1,86 @@
+.olympus-scratchpad-panel{
+  position:fixed;
+  top:0;
+  right:0;
+  z-index:180;
+  width:min(390px,calc(100vw - 88px));
+  height:100vh;
+  display:flex;
+  flex-direction:column;
+  background:var(--surface);
+  color:var(--text);
+  border-left:1px solid var(--line);
+  box-shadow:-24px 0 70px #0005;
+}
+.olympus-scratchpad-header{
+  min-height:78px;
+  padding:17px 18px 15px 22px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  border-bottom:1px solid var(--line);
+}
+.olympus-scratchpad-header span{
+  display:block;
+  color:var(--dim);
+  font-size:9px;
+  letter-spacing:1.5px;
+  margin-bottom:5px;
+}
+.olympus-scratchpad-header h2{font-size:20px;font-weight:520;letter-spacing:-.5px}
+.olympus-scratchpad-header button{
+  width:36px;
+  height:36px;
+  min-width:36px;
+  padding:0;
+  border:0;
+  border-radius:7px;
+  background:transparent;
+  color:var(--muted);
+}
+.olympus-scratchpad-header button:hover{background:var(--surface-raised);color:var(--text)}
+.olympus-scratchpad-body{display:flex;flex:1;min-height:0;flex-direction:column;padding:20px 22px}
+.olympus-scratchpad-body p{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:11px;margin-bottom:15px}
+.olympus-scratchpad-body textarea{
+  flex:1;
+  width:100%;
+  min-height:260px;
+  resize:none;
+  padding:16px;
+  border:1px solid var(--line);
+  border-radius:9px;
+  background:var(--bg);
+  color:var(--text);
+  font-size:13px;
+  line-height:1.75;
+  outline:none;
+}
+.olympus-scratchpad-body textarea:focus{border-color:var(--accent)}
+.olympus-scratchpad-footer{
+  min-height:58px;
+  padding:10px 18px 10px 22px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:15px;
+  border-top:1px solid var(--line);
+  color:var(--dim);
+  font-size:10px;
+}
+.olympus-scratchpad-footer button{
+  min-height:34px;
+  padding:7px 11px;
+  border:1px solid var(--line);
+  border-radius:7px;
+  background:transparent;
+  color:var(--muted);
+  font-size:10px;
+}
+.olympus-scratchpad-footer button:hover{background:var(--surface-raised);color:var(--text)}
+html[data-theme="light"] .olympus-scratchpad-panel{box-shadow:-20px 0 55px #4442}
+@media(max-width:640px){
+  .olympus-scratchpad-panel{width:100vw;height:100dvh;box-shadow:none}
+  .olympus-scratchpad-header{min-height:68px;padding:14px 16px 13px 18px}
+  .olympus-scratchpad-body{padding:17px 18px}
+}
