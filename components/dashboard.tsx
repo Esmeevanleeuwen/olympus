@@ -200,7 +200,7 @@ export default class Dashboard extends React.Component<DashboardProps, State> {
           this.setState({ audienceTab }, () => document.getElementById(`audience-tab-${audienceTab}`)?.focus());
         }}>{(["data", "supabase", "vercel", "erd"] as const).map(tab => <button key={tab} id={`audience-tab-${tab}`} role="tab" aria-controls={`audience-panel-${tab}`} aria-selected={s.audienceTab === tab} tabIndex={s.audienceTab === tab ? 0 : -1} className={s.audienceTab === tab ? "selected" : ""} onClick={() => this.setState({ audienceTab: tab, error: "", notice: "" })}>{tab === "data" ? "Data" : tab === "supabase" ? "Supabase" : tab === "vercel" ? "Vercel Analytics" : "ERD"}</button>)}</div>}
         <div hidden={s.screen !== "audiences" || s.audienceTab !== "data"} id="audience-panel-data" role="tabpanel" aria-labelledby="audience-tab-data">
-          <DataWorkspace active={s.screen === "audiences" && s.audienceTab === "data"} docked={s.layout.suite.visible && s.layout.suite.tools["data-tables"]} selection={s.tableRequest} onState={this.receiveDataWorkspace} src={this.props.dataWorkspaceUrl || "/data-workspace/index.html?v=2"}/>
+          <DataWorkspace active={s.screen === "audiences" && s.audienceTab === "data"} docked selection={s.tableRequest} onState={this.receiveDataWorkspace} src={this.props.dataWorkspaceUrl || "/data-workspace/index.html?v=2"}/>
         </div>
         <div hidden={s.screen !== "audiences" || s.audienceTab !== "erd"} id="audience-panel-erd" role="tabpanel" aria-labelledby="audience-tab-erd"><SupabaseErd/></div>
         {s.screen === "audiences" && s.audienceTab === "vercel" && <div id="audience-panel-vercel" role="tabpanel" aria-labelledby="audience-tab-vercel"><VercelAnalytics/></div>}

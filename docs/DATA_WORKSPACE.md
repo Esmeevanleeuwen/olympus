@@ -54,10 +54,10 @@ All settings are saved on this device. Existing Suite preferences survive;
 the previous standalone Data tables preference migrates into the Suite switch.
 
 When both Suite and Data tables are enabled, the table browser appears below
-the other Suite tools and the duplicate browser inside Data is hidden.
-Disabling either restores the table browser inside Data. Both use the same
-state, so selecting a table here opens it in Audiences → Data, and selections
-in the ERD update the sidebar highlight.
+the other Suite tools. Disabling either hides the list. The embedded copy
+stays hidden so the app has one sidebar throughout. The sidebar and Data use
+the same state: selecting a table here opens it in Audiences → Data, and
+selections in the ERD update the sidebar highlight.
 
 The frame sends table names, row/field counts and selection through a bridge
 that checks the message source and origin. The host can select known tables
