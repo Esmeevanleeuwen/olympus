@@ -9,8 +9,8 @@ The workspace is served from `public/data-workspace/index.html` and mounted by
 `components/data-workspace.tsx`. Keeping the existing standalone workspace in an
 iframe preserves its interactions and isolates its styles from the dashboard.
 Its duplicate Olympus header has been removed; the app provides the outer
-navigation and Zeus owner label. It loads on the first Data visit and stays
-mounted across source and main-navigation changes.
+navigation and Zeus owner label. It loads when the main sidebar needs table metadata, or on the first Data
+visit, and stays mounted across source and main-navigation changes.
 
 The server page passes the asset URL with `/olympus` for GitHub Pages exports,
 and without that prefix for local development and Vercel. No new dependencies,
@@ -39,3 +39,21 @@ query, switch to another audience source and back, and confirm it remains there.
 Combine reads from articles and users, choose author or reviewer, and inspect
 the generated join. In Latest change, use Add demo field and compare Before
 with After. No Supabase or Vercel setup is needed for these checks.
+
+## Customizable sidebar
+
+The main navigation is a fixed icon rail with a collapsible panel. Use its
+arrow, drag the edge handle, or swipe horizontally. On narrow screens, the
+panel opens over the workspace and closes after choosing a table.
+
+Layout → Sidebar controls the Data tables section, table search, row counts
+and desktop collapse preference. Settings are saved with the existing local
+layout; old layouts receive defaults without losing their blocks or Suite
+settings. Suite tools keep their separate controls under Suite sidebar.
+
+When Data tables is enabled, the embedded table browser moves into the main
+sidebar. Turning it off restores the browser inside Data. Both use the same
+demo state. The frame sends table names, row/field counts and the current
+selection through a bridge that checks the message source and origin. The
+host can select a known table or change docking; it cannot send SQL through
+this bridge. No records or credentials are shared.

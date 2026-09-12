@@ -18,3 +18,13 @@ test('valid official source links accepted',()=>assert.equal(m.safeUrl('https://
 test('count scale includes zero baseline',()=>assert.equal(m.chartMaximum([{...row,count:12},row]),12));
 test('move operations are immutable and bounded',()=>{const a=[{id:'1'},{id:'2'}];assert.deepEqual(m.moveBlock(a,'1',1),[{id:'2'},{id:'1'}]);assert.deepEqual(a,[{id:'1'},{id:'2'}]);assert.deepEqual(m.moveBlock(a,'1',-1),a);});
 test('local layout validation and caps',()=>{assert.deepEqual(m.parseLayout(m.INITIAL_LAYOUT),m.INITIAL_LAYOUT);assert.deepEqual(m.parseLayout({blocks:[],audiences:[]}).suite,m.INITIAL_LAYOUT.suite);assert.throws(()=>m.parseLayout({blocks:Array(9).fill({}),audiences:[]}));assert.throws(()=>m.parseLayout({blocks:[{id:'1',title:'',kind:'blank',text:''}],audiences:[]}));});
+test('sidebar preferences migrate older layouts and round-trip without changing Suite tools', () => {
+  const old = { blocks: [], audiences: [], suite: { visible: true, tools: { scratchpad: false, 'data-inspector': true } } };
+  const migrated = m.parseLayout(old);
+  assert.deepEqual(migrated.sidebar, m.INITIAL_LAYOUT.sidebar);
+  const configured = m.parseLayout({ ...migrated, sidebar: { collapsed: true, dataTables: false, search: false, counts: false, secret: 'discard' } });
+  assert.deepEqual(configured.sidebar, { collapsed: true, dataTables: false, search: false, counts: false });
+  assert.deepEqual(configured.suite, migrated.suite);
+  assert.deepEqual(m.parseLayout(JSON.parse(JSON.stringify(configured))), configured);
+  assert.deepEqual(m.parseLayout({ ...old, sidebar: { collapsed: 'yes', dataTables: 0 } }).sidebar, m.INITIAL_LAYOUT.sidebar);
+});

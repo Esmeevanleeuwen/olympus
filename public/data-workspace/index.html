@@ -46,6 +46,11 @@ main{padding:26px 28px;min-width:0;outline:none}.breadcrumb{display:flex;align-i
 /* The surrounding Olympus app provides the brand, owner and main navigation. */
 .workspace{min-height:100vh}.inspector{max-height:100vh}
 @media(min-width:1101px){.workspace{grid-template-columns:190px minmax(0,1fr)}.workspace.inspecting{grid-template-columns:190px minmax(0,1fr)300px}main{padding:22px}}
+/* A host can move the database browser into Olympus's main sidebar. */
+.hosted-sidebar .workspace{display:grid;grid-template-columns:minmax(0,1fr)}
+.hosted-sidebar .workspace>.sidebar{display:none}
+.hosted-sidebar .workspace.inspecting{grid-template-columns:minmax(0,1fr)300px}
+@media(max-width:1180px){.hosted-sidebar .workspace.inspecting{grid-template-columns:minmax(0,1fr)}.hosted-sidebar .inspector{top:0}}
 </style>
 </head>
 <body>
@@ -153,7 +158,7 @@ function rowsFor(name){const t=TABLES[name],search=(state.searches[name]||'').to
   return searchable.includes(search)&&(!status||row.status===status)&&(!filter||filter.pairs.every(pair=>row[pair.column]===pair.value));
  });const sort=state.sorts[name];if(sort)rows.sort((a,b)=>{const av=a.row[sort.column],bv=b.row[sort.column];return (typeof av==='number'&&typeof bv==='number'?av-bv:String(av).localeCompare(String(bv),'en',{numeric:true}))*sort.direction;});return rows;
 }
-function renderNav(){const query=$('table-search').value.toLowerCase();const names=ORDER.filter(n=>n.includes(query));$('table-list').innerHTML=names.map(name=>`<button class="table-choice" data-table="${name}" aria-current="${name===state.table}">${tableIcon}<span>${name}</span><small aria-label="${TABLES[name].rows.length} records">${TABLES[name].rows.length}</small></button>`).join('');$('no-tables').hidden=names.length>0;}
+function renderNav(){const query=$('table-search').value.toLowerCase();const names=ORDER.filter(n=>n.includes(query));$('table-list').innerHTML=names.map(name=>`<button class="table-choice" data-table="${name}" aria-current="${name===state.table}">${tableIcon}<span>${name}</span><small aria-label="${TABLES[name].rows.length} records">${TABLES[name].rows.length}</small></button>`).join('');$('no-tables').hidden=names.length>0;publishHostState();}
 function renderData(){const name=state.table,t=TABLES[name],sort=state.sorts[name];$('data-caption').textContent=`Test records in public.${name}`;
  $('data-head').innerHTML='<tr>'+t.columns.map(c=>`<th class="${state.context?.table===name&&state.context.column===c.name?'data-field-selected':''}" scope="col" aria-sort="${sort?.column===c.name?(sort.direction===1?'ascending':'descending'):'none'}"><div class="field-heading"><button class="field-name" data-column="${c.name}" aria-label="Inspect ${esc(c.name)} field">${esc(c.name)}</button><button class="sort" data-sort="${c.name}" aria-label="Sort by ${esc(c.name)}"><span class="sort-icon" aria-hidden="true">${sort?.column===c.name?(sort.direction===1?'↑':'↓'):'↕'}</span></button></div><small>${esc(c.type)}${c.pk?' · PK':''}${c.fk?' · FK':''}</small></th>`).join('')+'<th scope="col"><span class="sr">Inspect record</span></th></tr>';
  const rows=rowsFor(name);$('data-body').innerHTML=rows.length?rows.map(({row,index})=>`<tr class="${state.context?.type==='row'&&state.context.table===name&&state.context.index===index?'active':''}">${t.columns.map((c,i)=>`<td class="${c.name==='title'?'title-cell':''}">${i===0&&!c.fk?`<button class="row-id" data-row="${index}" aria-label="Inspect ${esc(name)} record ${esc(row[c.name])}">${esc(row[c.name])}</button>`:valueHtml(name,c,row[c.name])}</td>`).join('')}<td><button class="icon-button" data-row="${index}" aria-label="Inspect ${esc(name)} record ${index+1}">↗</button></td></tr>`).join(''):`<tr><td colspan="${t.columns.length+1}" class="empty"><h3>No matching records</h3><p>Try another search or clear the filters.</p><button data-clear-search>Clear filters</button></td></tr>`;
@@ -169,7 +174,7 @@ function selectionContext(selection){
  if(selection.column&&TABLES[selection.table].columns.some(c=>c.name===selection.column))return {type:'column',table:selection.table,column:selection.column};
  return {type:'table',table:selection.table};
 }
-function setContext(context){state.context=context;renderSelectionContext();}
+function setContext(context){state.context=context;renderSelectionContext();publishHostState();}
 function renderSelectionContext(){
  const c=state.context,box=$('selection-context');box.hidden=!c;if(!c){box.innerHTML='';return;}
  const table=TABLES[c.table],label=c.type==='row'?`${c.table} · ${rowLabel(c.table,table.rows[c.index],c.index)}`:c.column?`${c.table}.${c.column}`:c.table;
@@ -710,7 +715,28 @@ function addDemoField(){
 }
 function renderRecentChanges(){const query=$('recent-search').value.toLowerCase(),list=state.changeLog.filter(q=>(q.title+' '+q.table+' '+q.column+' '+q.operation).toLowerCase().includes(query));$('recent-count').textContent=String(state.changeLog.length);$('recent-changes').innerHTML=list.map(q=>`<button class="recent-change" data-recent-change="${q.id}" aria-pressed="${q.id===state.latest?.id}"><span><strong>${esc(q.title)}</strong><small>${esc(q.table+'.'+q.column)} · ${esc(q.operation)}</small></span><time datetime="${q.at}">${esc(new Intl.DateTimeFormat('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'UTC'}).format(new Date(q.at)))} UTC</time></button>`).join('')||'<p class="combo-empty">No matching recent changes.</p>';$('follow-latest').hidden=state.latest?.id===state.changeLog[0]?.id;}
 function renderLatest(){const q=state.latest,d=latestDescription();renderRecentChanges();$('latest-title').textContent=q.title;$('latest-meta').textContent=new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'UTC'}).format(new Date(q.at))+' UTC · recorded demo change';$('latest-kind').textContent=q.operation;renderQueryLanguage();$('latest-result').textContent=q.result;$('latest-scope').innerHTML=q.names.map(name=>`<button data-erd-find="latest" data-erd-table="${name}">${esc(name)} ↗</button>`).join('');document.querySelectorAll('[data-compare]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.compare===state.compare)));$('latest-changes').innerHTML=`<div class="change-line"><div><code>${esc(q.table+'.'+q.column)}</code><small>${q.changes.length} recorded ${q.changes.length===1?'change':'changes'}</small></div><div class="change-values"><span>${esc(d.before)}</span><span>→</span><strong>${esc(d.after)}</strong></div></div>`;requestAnimationFrame(renderLatestMap);}
-function selectRecentChange(id){const entry=state.changeLog.find(q=>q.id===id);if(!entry)return;closeInspector(false);state.latest=entry;state.commandIndex=null;state.compare='after';state.context=null;graphViews.latest.hit=null;renderLatest();renderSelectionContext();}
+function selectRecentChange(id){const entry=state.changeLog.find(q=>q.id===id);if(!entry)return;closeInspector(false);state.latest=entry;state.commandIndex=null;state.compare='after';state.context=null;graphViews.latest.hit=null;renderLatest();renderSelectionContext();publishHostState();}
+
+
+// Same-origin host bridge: metadata and table selection only; no SQL or records.
+let lastHostState = '';
+function publishHostState(force=false){
+ if(window.parent===window)return;
+ const selected=state.context?.table||state.table;
+ const message={type:'olympus:data-state',selected,view:state.view,tables:Object.keys(TABLES).map(name=>({name,rows:TABLES[name].rows.length,fields:TABLES[name].columns.length}))};
+ const serialized=JSON.stringify(message);if(!force&&serialized===lastHostState)return;lastHostState=serialized;
+ window.parent.postMessage(message,window.location.origin);
+}
+window.addEventListener('message',event=>{
+ if(window.parent===window||event.source!==window.parent||event.origin!==window.location.origin||!event.data||typeof event.data!=='object')return;
+ const message=event.data;
+ if(message.type==='olympus:data-host'&&typeof message.docked==='boolean'){
+  document.body.classList.toggle('hosted-sidebar',message.docked);publishHostState(true);
+  requestAnimationFrame(()=>{if(state.view==='connections')renderMap();if(state.view==='builder')renderBuilderMap();if(state.view==='latest')renderLatestMap();});
+ }else if(message.type==='olympus:data-select'&&typeof message.table==='string'&&Object.prototype.hasOwnProperty.call(TABLES,message.table)){
+  selectTable(message.table);publishHostState();
+ }
+});
 
 document.addEventListener('click',event=>{const b=event.target.closest('button');if(!b||b.disabled)return;
 

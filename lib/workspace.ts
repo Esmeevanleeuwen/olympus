@@ -8,7 +8,8 @@ export type Block = { id: string; title: string; kind: "blank" | "note"; text: s
 export type Snapshot = { version: 1; capturedAt: string; resources: Resource[] };
 export type SuiteTool = "scratchpad" | "data-inspector" | "api-sandbox" | "command-shelf";
 export type SuiteConfig = { visible: boolean; tools: Record<SuiteTool, boolean> };
-export type Layout = { blocks: Block[]; audiences: Block[]; suite: SuiteConfig };
+export type SidebarConfig = { collapsed: boolean; dataTables: boolean; search: boolean; counts: boolean };
+export type Layout = { blocks: Block[]; audiences: Block[]; suite: SuiteConfig; sidebar: SidebarConfig };
 export const PLATFORMS = [
 
   
@@ -27,6 +28,7 @@ export const PROVIDERS: Record<Provider, string> = { supabase: "Supabase", githu
 export const INITIAL_LAYOUT: Layout = {
   blocks: [{ id: "initial-block", title: "Untitled block", kind: "blank", text: "" }],
   audiences: [],
+  sidebar: { collapsed: false, dataTables: true, search: true, counts: true },
   suite: {
     visible: false,
     tools: { scratchpad: true, "data-inspector": false, "api-sandbox": false, "command-shelf": false }
@@ -89,7 +91,14 @@ export function parseLayout(input: unknown): Layout {
       "command-shelf": typeof toolsInput["command-shelf"] === "boolean" ? toolsInput["command-shelf"] : false
     }
   };
-  return { blocks: parseBlocks(input.blocks), audiences: parseBlocks(input.audiences), suite };
+  const sidebarInput = object(input.sidebar) ? input.sidebar : {};
+  const sidebar: SidebarConfig = {
+    collapsed: typeof sidebarInput.collapsed === "boolean" ? sidebarInput.collapsed : false,
+    dataTables: typeof sidebarInput.dataTables === "boolean" ? sidebarInput.dataTables : true,
+    search: typeof sidebarInput.search === "boolean" ? sidebarInput.search : true,
+    counts: typeof sidebarInput.counts === "boolean" ? sidebarInput.counts : true
+  };
+  return { blocks: parseBlocks(input.blocks), audiences: parseBlocks(input.audiences), suite, sidebar };
 }
 export function resourcesWithSnapshot(snapshot: Snapshot | null): Resource[] {
   const map = new Map(SEED.map(row => [row.id, row]));

@@ -1,1 +1,1 @@
-{"compilerOptions":{"target":"ES2020","module":"commonjs","strict":true,"outDir":".model-test","skipLibCheck":true},"include":["lib/workspace.ts","lib/erd.ts"]}
+{"compilerOptions":{"target":"ES2020","module":"commonjs","strict":true,"outDir":".model-test","skipLibCheck":true},"include":["lib/workspace.ts","lib/erd.ts","lib/data-workspace-bridge.ts"]}
