@@ -6,9 +6,9 @@ export type Resource = {
 };
 export type Block = { id: string; title: string; kind: "blank" | "note"; text: string };
 export type Snapshot = { version: 1; capturedAt: string; resources: Resource[] };
-export type SuiteTool = "scratchpad" | "data-inspector" | "api-sandbox" | "command-shelf";
+export type SuiteTool = "scratchpad" | "data-inspector" | "api-sandbox" | "command-shelf" | "data-tables";
 export type SuiteConfig = { visible: boolean; tools: Record<SuiteTool, boolean> };
-export type SidebarConfig = { collapsed: boolean; dataTables: boolean; search: boolean; counts: boolean };
+export type SidebarConfig = { collapsed: boolean; width: "compact" | "wide"; search: boolean; counts: boolean };
 export type Layout = { blocks: Block[]; audiences: Block[]; suite: SuiteConfig; sidebar: SidebarConfig };
 export const PLATFORMS = [
 
@@ -28,10 +28,10 @@ export const PROVIDERS: Record<Provider, string> = { supabase: "Supabase", githu
 export const INITIAL_LAYOUT: Layout = {
   blocks: [{ id: "initial-block", title: "Untitled block", kind: "blank", text: "" }],
   audiences: [],
-  sidebar: { collapsed: false, dataTables: true, search: true, counts: true },
+  sidebar: { collapsed: false, width: "compact", search: true, counts: true },
   suite: {
     visible: false,
-    tools: { scratchpad: true, "data-inspector": false, "api-sandbox": false, "command-shelf": false }
+    tools: { scratchpad: true, "data-inspector": false, "api-sandbox": false, "command-shelf": false, "data-tables": true }
   }
 };
 function object(value: unknown): value is Record<string, unknown> { return !!value && typeof value === "object" && !Array.isArray(value); }
@@ -81,20 +81,21 @@ export function parseLayout(input: unknown): Layout {
     });
   };
   const suiteInput = object(input.suite) ? input.suite : INITIAL_LAYOUT.suite;
-  const toolsInput = object(suiteInput.tools) ? suiteInput.tools : INITIAL_LAYOUT.suite.tools;
+  const toolsInput = object(suiteInput.tools) ? suiteInput.tools : {};
+  const sidebarInput = object(input.sidebar) ? input.sidebar : {};
   const suite: SuiteConfig = {
     visible: typeof suiteInput.visible === "boolean" ? suiteInput.visible : false,
     tools: {
       scratchpad: typeof toolsInput.scratchpad === "boolean" ? toolsInput.scratchpad : true,
       "data-inspector": typeof toolsInput["data-inspector"] === "boolean" ? toolsInput["data-inspector"] : false,
       "api-sandbox": typeof toolsInput["api-sandbox"] === "boolean" ? toolsInput["api-sandbox"] : false,
-      "command-shelf": typeof toolsInput["command-shelf"] === "boolean" ? toolsInput["command-shelf"] : false
+      "command-shelf": typeof toolsInput["command-shelf"] === "boolean" ? toolsInput["command-shelf"] : false,
+      "data-tables": typeof toolsInput["data-tables"] === "boolean" ? toolsInput["data-tables"] : typeof sidebarInput.dataTables === "boolean" ? sidebarInput.dataTables : true
     }
   };
-  const sidebarInput = object(input.sidebar) ? input.sidebar : {};
   const sidebar: SidebarConfig = {
     collapsed: typeof sidebarInput.collapsed === "boolean" ? sidebarInput.collapsed : false,
-    dataTables: typeof sidebarInput.dataTables === "boolean" ? sidebarInput.dataTables : true,
+    width: sidebarInput.width === "wide" ? "wide" : "compact",
     search: typeof sidebarInput.search === "boolean" ? sidebarInput.search : true,
     counts: typeof sidebarInput.counts === "boolean" ? sidebarInput.counts : true
   };

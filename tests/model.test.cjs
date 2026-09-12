@@ -22,9 +22,23 @@ test('sidebar preferences migrate older layouts and round-trip without changing 
   const old = { blocks: [], audiences: [], suite: { visible: true, tools: { scratchpad: false, 'data-inspector': true } } };
   const migrated = m.parseLayout(old);
   assert.deepEqual(migrated.sidebar, m.INITIAL_LAYOUT.sidebar);
-  const configured = m.parseLayout({ ...migrated, sidebar: { collapsed: true, dataTables: false, search: false, counts: false, secret: 'discard' } });
-  assert.deepEqual(configured.sidebar, { collapsed: true, dataTables: false, search: false, counts: false });
+  const configured = m.parseLayout({ ...migrated, sidebar: { collapsed: true, width: 'wide', search: false, counts: false, secret: 'discard' } });
+  assert.deepEqual(configured.sidebar, { collapsed: true, width: 'wide', search: false, counts: false });
   assert.deepEqual(configured.suite, migrated.suite);
   assert.deepEqual(m.parseLayout(JSON.parse(JSON.stringify(configured))), configured);
-  assert.deepEqual(m.parseLayout({ ...old, sidebar: { collapsed: 'yes', dataTables: 0 } }).sidebar, m.INITIAL_LAYOUT.sidebar);
+  assert.deepEqual(m.parseLayout({ ...old, sidebar: { collapsed: 'yes', width: 'invalid' } }).sidebar, m.INITIAL_LAYOUT.sidebar);
+});
+
+test('Data tables joins Suite while preserving its master switch and existing tools', () => {
+  const previous = { blocks: [], audiences: [], suite: { visible: false, tools: { scratchpad: true, 'data-inspector': true, 'api-sandbox': false, 'command-shelf': true } }, sidebar: { dataTables: false, collapsed: true, search: false, counts: true } };
+  const migrated = m.parseLayout(previous);
+  assert.equal(migrated.suite.visible, false);
+  for (const [name, enabled] of Object.entries(previous.suite.tools)) assert.equal(migrated.suite.tools[name], enabled);
+  assert.equal(migrated.suite.tools['data-tables'], false);
+  assert.equal(migrated.sidebar.collapsed, true);
+  assert.equal(migrated.sidebar.search, false);
+  assert.equal('dataTables' in migrated.sidebar, false);
+  const explicit = m.parseLayout({ ...previous, suite: { ...previous.suite, visible: true, tools: { ...previous.suite.tools, 'data-tables': true } } });
+  assert.equal(explicit.suite.visible, true); assert.equal(explicit.suite.tools['data-tables'], true);
+  assert.deepEqual(m.parseLayout(JSON.parse(JSON.stringify(explicit))), explicit);
 });

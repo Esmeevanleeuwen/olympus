@@ -42,18 +42,24 @@ with After. No Supabase or Vercel setup is needed for these checks.
 
 ## Customizable sidebar
 
-The main navigation is a fixed icon rail with a collapsible panel. Use its
-arrow, drag the edge handle, or swipe horizontally. On narrow screens, the
-panel opens over the workspace and closes after choosing a table.
+One sidebar contains the original main navigation and Suite test-space section.
+The small arrow at the top hides the entire sidebar. The same button reopens
+it; no icon rail remains. On desktop the workspace uses all the freed space.
+On mobile the sidebar overlays the page and closes after navigation.
 
-Layout → Sidebar controls the Data tables section, table search, row counts
-and desktop collapse preference. Settings are saved with the existing local
-layout; old layouts receive defaults without losing their blocks or Suite
-settings. Suite tools keep their separate controls under Suite sidebar.
+Layout → Sidebar controls width (Compact or Roomy), visibility, table search
+and row counts. Layout → Suite sidebar keeps the existing master visibility
+switch and four tool switches, with Data tables added as a fifth option.
+All settings are saved on this device. Existing Suite preferences survive;
+the previous standalone Data tables preference migrates into the Suite switch.
 
-When Data tables is enabled, the embedded table browser moves into the main
-sidebar. Turning it off restores the browser inside Data. Both use the same
-demo state. The frame sends table names, row/field counts and the current
-selection through a bridge that checks the message source and origin. The
-host can select a known table or change docking; it cannot send SQL through
-this bridge. No records or credentials are shared.
+When both Suite and Data tables are enabled, the table browser appears below
+the other Suite tools and the duplicate browser inside Data is hidden.
+Disabling either restores the table browser inside Data. Both use the same
+state, so selecting a table here opens it in Audiences → Data, and selections
+in the ERD update the sidebar highlight.
+
+The frame sends table names, row/field counts and selection through a bridge
+that checks the message source and origin. The host can select known tables
+or change docking; it cannot send SQL through the bridge. No record contents
+or credentials are shared.
