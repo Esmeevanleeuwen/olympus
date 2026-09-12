@@ -3,7 +3,7 @@ import Dashboard from "../components/dashboard";
 
 export default function Page() {
   return <>
-    <Dashboard />
+    <Dashboard dataWorkspaceUrl={`${process.env.GITHUB_PAGES === "true" ? "/olympus" : ""}/data-workspace/index.html`} />
     <Link
       href="/builder"
       aria-label="Open Builder Lab"
