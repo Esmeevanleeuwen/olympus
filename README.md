@@ -21,6 +21,11 @@ npm run typecheck
 npm run build
 ```
 
+The interactive workspace is also published at
+https://esmeevanleeuwen.github.io/olympus/ through the GitHub Pages workflow.
+GitHub Pages serves the static workspace and local snapshot/layout features;
+the server-only Vercel Analytics panel requires a Next.js server deployment.
+
 ## What works
 
 Platform selection; source filtering; resource search; table and bar views; source details; local snapshot import; adding, renaming, reordering and removing blocks; draft notes; the Audiences snapshot dashboard; local layout persistence; layout export and reset; optional Suite sidebar controls.

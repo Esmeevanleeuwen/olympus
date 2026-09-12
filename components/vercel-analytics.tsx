@@ -89,7 +89,16 @@ export default function VercelAnalytics() {
     }
   }, [days]);
 
-  useEffect(() => { mounted.current = true; void load(); return () => { mounted.current = false; activeRequest.current?.abort(); }; }, [load]);
+  useEffect(() => {
+    mounted.current = true;
+    if (window.location.hostname.endsWith(".github.io")) {
+      setStatus("setup");
+      setError("Live Vercel analytics require a server deployment. The GitHub Pages preview includes the complete workspace, but server-only analytics are unavailable here.");
+    } else {
+      void load();
+    }
+    return () => { mounted.current = false; activeRequest.current?.abort(); };
+  }, [load]);
 
   async function unlock(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setSubmitting(true); setError("");
