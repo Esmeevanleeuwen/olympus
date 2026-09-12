@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import SidebarShell from "../components/sidebar-shell";
+import ScratchpadShell from "../components/scratchpad-shell";
 import "./globals.css";
 import "./sidebar-shell.css";
+import "./scratchpad-shell.css";
 
 export const metadata: Metadata = {
   title: "Olympus — Workspace",
@@ -11,5 +13,5 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
-  return <html lang="en"><body>{children}<SidebarShell/></body></html>;
+  return <html lang="en"><body>{children}<SidebarShell/><ScratchpadShell/></body></html>;
 }
