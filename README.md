@@ -32,6 +32,8 @@ Platform selection; source filtering; resource search; table and bar views; sour
 
 **Audiences → Vercel Analytics** lists the projects accessible through your connected Vercel team and reads live traffic for the selected project. It remembers your last selection and keeps each platform's figures separate. No Vercel snapshots are needed. Follow [the Vercel setup steps](docs/VERCEL_ANALYTICS.md) to add the server credentials and owner password. Missing settings leave analytics unavailable, rather than displaying invented counts.
 
+**Audiences → ERD** imports Supabase schema JSON and draws the real table relationships. Search tables or columns, inspect primary/foreign keys, and switch between a focused diagram and all tables. It works on GitHub Pages without a token. See [the ERD guide](docs/SUPABASE_ERD.md) to export/import your schema.
+
 Record editing, GitHub writes, deployment actions and AI judgement are not implemented. Public repository references are not live connection indicators. The app does not inherit the connectors available in ChatGPT.
 
 ## Data and privacy
