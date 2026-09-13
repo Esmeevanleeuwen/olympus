@@ -11,3 +11,6 @@ private/
 .DS_Store
 
 !.env.example
+
+# Supabase CLI state
+supabase/.temp/

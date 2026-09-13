@@ -4,6 +4,8 @@ import "./globals.css";
 import "./erd.css";
 import "./data-workspace.css";
 import "./workspace-sidebar.css";
+import "@olympus/workspace-ui/styles.css";
+import "./platform-features.css";
 export const metadata: Metadata = {
   title: "Olympus — Workspace",
   description: "A minimal, modular design preview for Olympus.",
